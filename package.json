@@ -1,0 +1,21 @@
+{
+  "name": "InSecurity",
+  "version": "0.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "express": "~4.11.2",
+    "jade": "*",
+    "stylus": "*",
+    "nib": "*"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/kpolanday/InSecurity.git"
+  },
+  "author": "",
+  "license": "BSD-2-Clause",
+}
