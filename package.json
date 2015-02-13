@@ -1,21 +1,27 @@
 {
   "name": "InSecurity",
   "version": "0.0.0",
-  "description": "",
-  "main": "app.js",
+  "description": "0.0.0",
+  "main": "index.js",
   "dependencies": {
-    "express": "~4.11.2",
-    "jade": "*",
-    "stylus": "*",
-    "nib": "*"
+    "express": "^4.11.2",
+    "express-generator": "^4.11.2",
+    "jade": "^1.9.2",
+    "nib": "^1.1.0",
+    "stylus": "^0.50.0"
   },
+  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/kpolanday/InSecurity.git"
+    "url": "https://github.com/kpolanday/InSecurity.git"
   },
   "author": "",
-  "license": "BSD-2-Clause",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kpolanday/InSecurity/issues"
+  },
+  "homepage": "https://github.com/kpolanday/InSecurity"
 }
