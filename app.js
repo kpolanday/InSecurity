@@ -1,14 +1,24 @@
-var express = require('express');
+var express = require('express')
+    , stylus = require('stylus')
+    , nib = require('nib')
+    , bootstrap = require('bootstrap-stylus');
+
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
-var routes = require('./routes/index');
-var users = require('./routes/users');
+var routes = require('./routes/menu');
+var games = require('./routes/games');
 
 var app = express();
+function compile(str, path) {
+    return stylus(str)
+        .set('filename', path)
+        .use(nib())
+        .use(bootstrap())
+}
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -20,11 +30,14 @@ app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(require('less-middleware')(path.join(__dirname, 'public')));
+app.use(stylus.middleware({
+    src: __dirname + '/public',
+    compile: compile
+}));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
-app.use('/users', users);
+app.use("/game1", express.static(__dirname + '/game1'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
