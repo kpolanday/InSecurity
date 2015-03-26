@@ -7,15 +7,11 @@
   },
   "dependencies": {
   	"body-parser": "*",
-  	"directory": "*",
   	"cookie-parser": "*",
   	"debug": "*",
   	"serve-favicon": "*",
-  	"morgan": "*",
     "socket.io": "*",
     "express": "*",
-    "jade": "*",
-    "socket.io": "*",
-    "node-uuid": "*"
+    "p5": "*"
   }
 }
