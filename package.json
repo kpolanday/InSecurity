@@ -1,7 +1,6 @@
 {
   "name": "insecurity",
   "version": "0.0.0",
-  "private": true,
   "scripts": {
     "start": "node app.js"
   },
@@ -13,5 +12,15 @@
     "socket.io": "*",
     "express": "*",
     "p5": "*"
+  },
+  "devDependencies": {
+    "grunt": "*",
+    "grunt-contrib-jshint": "*",
+    "grunt-contrib-nodeunit": "*",
+    "grunt-contrib-uglify": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/kpolanday/InSecurity.git"
   }
 }
