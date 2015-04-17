@@ -11,13 +11,14 @@
   	"serve-favicon": "*",
     "socket.io": "*",
     "express": "*",
+    "mongojs": "*",
     "p5": "*"
   },
   "devDependencies": {
     "grunt": "*",
     "grunt-contrib-jshint": "*",
-    "grunt-contrib-nodeunit": "*",
-    "grunt-contrib-uglify": "*"
+    "grunt-contrib-watch": "*",
+    "grunt-contrib-concat": "*"
   },
   "repository": {
     "type": "git",

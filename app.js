@@ -1,29 +1,22 @@
 var express = require('express'),
 	app = express(),
 	server = require('http').createServer(app),
+	mongojs = require('mongojs'),
+	db = mongojs("InSecurity", []),
 	io = require('socket.io').listen(server);
 
-// mongojs = require('mongojs');
+var game = require('./public/js/game.js');
 var bodyParser = require('body-parser');
 
-app.use(express.static(__dirname + "/public"));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(app.router);
-
-app.get('/', function(req, res) {
-	res.redirect('/index.html');
+app.configure(function() {
+	app.use(express.static(__dirname + "/public"));
+	app.use(bodyParser.json());
+	app.use(bodyParser.urlencoded({ extended: false }));
 });
 
-/*
-io.sockets.on('connection', function(client) {
-    console.log('\t socket.io:: player ' + client.id + ' connected');
-
-    // When the client disconnects
-    client.on('disconnect', function() {
-        console.log('\t socket.io:: client disconnected: ' + client.id);
-    });
+io.sockets.on('connection', function(socket) {
+	console.log('A player connected...');
+	initGame(io, socket);
 });
-*/
 
 server.listen(3000);
