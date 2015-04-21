@@ -1,11 +1,11 @@
 function movePlayer(player, map, x, y){
 	// Update map data
 	// Set old title to unoccupied
-	map.tile_array[player.xcoor][player.ycoor].tile_data = 0;
+	map.tile_array[player.xcoor][player.ycoor].type = 0;
 	// Check if there's an item on the new tile
-	if(map.tile_array[x][y].tile_data != 0) {
+	if(map.tile_array[x][y].type != 0) {
 		// Set new tile data to not have an item
-		map.tile_array[x][y].tile_data = 0;
+		map.tile_array[x][y].type = 0;
 		// Checks array of all in-play items to see which item was on the new tile
 		for (var object = 0; object < game_objects.length; object++) {
 			if (x == game_objects[object].xcoor && y == game_objects[object].ycoor) {
@@ -42,7 +42,7 @@ function movePlayer(player, map, x, y){
 	player.ycoor = y;
 
 	// Set new tile data to have the player
-	map.tile_array[x][y].tile_data = 2;
+	map.tile_array[x][y].type = 2;
 
 	// Updates tile accessibility for all tiles around the player's old tile
 	updateTileAccessibility(map, x, y);
@@ -60,7 +60,8 @@ function updateTileAccessibility(map, x, y) {
 	// Tile(x,y) is not on the left most column of tiles
 	// Tile to the left of Tile (x,y) is not a wall
 	// Only if all the above are true does it set tile to the left of Tile(x,y) as accessible
-	if (x != 0 && map.tile_array[x-1][y].tile_data != 1) {
+	console.log(map.tile_array[x-1][y].type);
+	if (x != 0 && map.tile_array[x-1][y].type != 1) {
 		map.tile_array[x-1][y].tile_accessibility = 1;
 	} else {
 		map.tile_array[x-1][y].tile_accessibility = 0;
@@ -70,7 +71,7 @@ function updateTileAccessibility(map, x, y) {
 	// Tile(x,y) is not on the right most column of tiles
 	// Tile to the right of Tile (x,y) is not a wall
 	// Only if all the above are true does it set tile to the right of Tile(x,y) as accessible
-	if (x != map.size_horizontal-1 && map.tile_array[x+1][y].tile_data != 1) {
+	if (x != map.size_horizontal-1 && map.tile_array[x+1][y].type != 1) {
 		map.tile_array[x+1][y].tile_accessibility = 1;
 	} else {
 		map.tile_array[x+1][y].tile_accessibility = 0;
@@ -80,7 +81,7 @@ function updateTileAccessibility(map, x, y) {
 	// Tile(x,y) is not on the top most row of tiles
 	// Tile to the top of Tile (x,y) is not a wall
 	// Only if all the above are true does it set tile to the top of Tile(x,y) as accessible
-	if (y != 0 && map.tile_array[x][y-1].tile_data != 1) {
+	if (y != 0 && map.tile_array[x][y-1].type != 1) {
 		map.tile_array[x][y-1].tile_accessibility = 1;
 	} else {
 		map.tile_array[x][y-1].tile_accessibility = 0;
@@ -90,7 +91,7 @@ function updateTileAccessibility(map, x, y) {
 	// Tile(x,y) is not on the bottom most row of tiles
 	// Tile to the bottom of Tile (x,y) is not a wall
 	// Only if all the above are true does it set tile to the bottom of Tile(x,y) as accessible
-	if (y != map.size_vertical-1 && map.tile_array[x][y+1].tile_data != 1) {
+	if (y != map.size_vertical-1 && map.tile_array[x][y+1].type != 1) {
 		map.tile_array[x][y+1].tile_accessibility = 1;
 	} else {
 		map.tile_array[x][y+1].tile_accessibility = 0;

@@ -1,21 +1,14 @@
-var turn_num;
-
 // once the player has moved send data
 function endTurn(){
-	if (player.type=='attacker' && player.action == 'moved'){
-		if (player.playerItems !== null)
-	}
-
-	
-
+	if (player.type=='attacker' && player.action == 'moved'){}
 }
 
 function sendTurnData() {
 	var turnData = {
 		'turn_num': turn_num+1,
-		'attacker': null
-		'defender': null
-		'gameOver': false;
+		'attacker': null,
+		'defender': null,
+		'gameOver': false
 	}
 
 	var successHandler = function(data, textStatus, jqXHR){
@@ -29,7 +22,6 @@ function sendTurnData() {
 		contentType: 'application/json',
 		dataType: 'json',
 		success: successHandler
-		}
 	});
 }
 

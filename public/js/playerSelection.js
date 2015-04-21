@@ -1,24 +1,16 @@
-var playerType;
-
 $(document).ready(function() {
   $("#defender").on("click",function() {
-    chooseDefender();
+  	sessionStorage.setItem('playerType', 'defender');
+
+	socket.on('connect', function() {
+		socket.emit('chooseDefender', id, window.location.pathname);
+	});
   });
-  $("#defender").on("click",function() {
-    chooseAttacker();
+  $("#attacker").on("click",function() {
+	sessionStorage.setItem('playerType', 'attacker');
+
+	socket.on('connect', function() {
+		socket.emit('chooseAttacker', id, window.location.pathname);
+	});
   });
 });
-
-function chooseDefender() {
-	playerType = 'defender';
-	socket.on('connect', function() {
-		socket.emit('chooseDefender', {id, window.location.pathname});
-	});
-}
-
-function chooseAttacker() {
-	playerType = 'attacker';
-	socket.on('connect', function() {
-		socket.emit('chooseAttacker', {id, window.location.pathname});
-	});
-}

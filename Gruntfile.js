@@ -9,7 +9,7 @@ module.exports = function(grunt) {
 				src: [
 					'./public/js/*.js',
 				],
-				dest: './game.js',
+				dest: './public/game.js',
 			},
 			stylesheets: {
 				src: [

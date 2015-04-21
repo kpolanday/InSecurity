@@ -1,6 +1,7 @@
 {
   "name": "insecurity",
   "version": "0.0.0",
+  "private": true,
   "scripts": {
     "start": "node app.js"
   },
@@ -10,7 +11,8 @@
   	"debug": "*",
   	"serve-favicon": "*",
     "socket.io": "*",
-    "express": "*",
+    "serve-static": "*",
+    "express": "~4.11.*",
     "mongojs": "*",
     "p5": "*"
   },
