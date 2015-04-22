@@ -139,14 +139,14 @@ function GameMap(width, height, radius, map_array) {
 	this.rooms;
 
 	// Generates a new Tile Array
-	this.tile_array = new Array(this.width);
-	for (var column = 0; column < this.width; column++) {
-		this.tile_array[column] = new Array(this.height);
+	this.tile_array = new Array(width);
+	for (var column = 0; column < width; column++) {
+		this.tile_array[column] = new Array(height);
 	}
 
 	// Generate Game Map of Tiles
-	for (var column = 0; column < this.width; column++) {
-		for (var row = 0; row < this.height; row++) {
+	for (var column = 0; column < width; column++) {
+		for (var row = 0; row < height; row++) {
 				this.tile_array[column][row] = new Tile(map_array[row][column], this.tile_size);
 		}
 	}
@@ -161,10 +161,11 @@ function sendGameSettings() {
 	 * uncomment once DB is connected
 
 	var settings = {
+		'id': Math.floor((Math.random() * 1000000) + 1),
 		'version': gameSettings.version,
 		'map_width': gameSettings.map_width,
 		'map_height': gameSettings.map_height,
-		'numObjectives'
+		'numObjectives': 3,
 		'view': gameSettings.view,
 		'enableItems': gameSettings.enableItems
 	}
@@ -174,7 +175,7 @@ function sendGameSettings() {
 	};
 
 	$.ajax({
-		url: '/settings', // sending game settings to DB
+		url: '/gameSettings',
 		type: 'POST',
 		data: JSON.stringify(settings),
 		contentType: 'application/json',
@@ -186,7 +187,7 @@ function sendGameSettings() {
 
 	var defaultSettings = {
 		'game_version': 1,
-		'game_id': 1111111,
+		'game_id': Math.floor((Math.random() * 1000000) + 1),
 		'map_width': 29,
 		'map_height': 29,
 		'map_radius': 2,
@@ -215,19 +216,12 @@ function setupGame() {
 		dataType: 'json'
 	}).done(function(response) {
 		map = new GameMap(response.width, response.height, response.map_array);
-	});
-	
-	var playerData = {
-		'type': playerType
-	}
 
-	$.ajax({
-		url: '/player',
-		type: 'GET',
-		data: JSON.stringify(playerData),
-		dataType: 'json'
-	}).done(function(response) {
-		player = new Player(response.type, response.startX, response.startY);
+		if (playerType == 'attacker'){
+			player = new Player(playerType, response.StartAttacker.x, response.StartAttacker.y);
+		} else {
+			player = new Player(playerType, response.StartDefender.x, response.StartDefender.y);
+		}
 	});
 	*/
 
@@ -265,7 +259,15 @@ function setupGame() {
 
 	map = new GameMap(29,29, 3, mapArray);
 	console.log(playerType);
-	player = new Player(playerType, 6, 24);
+	
+	if (playerType == 'attacker'){
+		player = new Player(playerType, 6, 24);
+		opponent = new Player('defender', 21, 5);
+	} else if (playerType == 'defender'){
+		player = new Player(playerType, 21, 5);
+		opponent = new Player('attacker', 6, 24);
+	}
+
 	num_stars = gameSettings.numObjectives;
 	game_objects = new Array(gameSettings.numObjectives);
 	game_objects[0] = ('star', 6, 6);
@@ -288,15 +290,12 @@ function updateCursor(x_coord, y_coord) {
 function drawGameSession() {
 	updateCursor(mouseX, mouseY);
 	drawMap(map);
-	/*
-	if (edgeCase()) {
+	
+	if (player.moving == 1) {
 		drawPlayerMotion(map, player.distance_left);
 	} else {
 		drawPlayer(map);
 	}
-	*/
-
-	//drawBorder();	
 }
 
 function drawMap(map) {
@@ -310,16 +309,13 @@ function drawMap(map) {
 	var start_y;
 	var end_y;
 	if (player.ycoor-map.radius < map.radius) {
-		console.log('top of map');
 		start_y = player.ycoor-map.radius;
 		end_y = player.ycoor+map.radius;
 	} else if (player.ycoor+map.radius > map.height) {
-		console.log('bottom of map');
 		start_y = player.ycoor-map.radius;
 		end_y = map.height+map.radius-1;
 	}
 	else {
-		console.log('middle of map');
 		start_y = player.ycoor-map.radius;
 		end_y = player.ycoor+map.radius;
 	}
@@ -327,11 +323,9 @@ function drawMap(map) {
 	var start_x;
 	var end_x;
 	if (player.xcoor-map.radius < map.radius){
-		console.log('left side of map');
 		start_x = player.xcoor-map.radius;
 		end_x = player.xcoor+map.radius;
 	} else if (player.xcoor+map.radius > map.width) {
-		console.log('right side of map');
 		start_x = player.xcoor-map.radius;
 		end_x = map.width+map.radius-1;
 	} else {
@@ -339,32 +333,317 @@ function drawMap(map) {
 		end_x = player.xcoor+map.radius;
 	}
 
-	console.log(start_y, end_y);
-	console.log(start_x, end_x);
+	
 	for (var y = start_y; y <= end_y; y++){
 		for(var x = start_x; x <= end_x; x++){
+			
 			if (player.moving == 1) {
-				console.log('player moving');
 				if (player.distance_left < 0) {
 					player.distance_left = 0;
 					player.moving = 0;
-					drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor);
+					drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor, player.type);
 				} else {
 					if (edgeCase()) {
-						drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor);
+						drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor, player.type);
 					} else {
 						player.distance_left = player.distance_left - .06;
-			  			drawTileMotion(map.tile_array[x][y],tile_xcoor,tile_ycoor,cursor_x,cursor_y,player.distance_left);
+						drawTileMotion(map.tile_array[x][y],tile_xcoor,tile_ycoor,cursor_x,cursor_y,player.distance_left);
 					}
 				}
 			} else {
-				console.log('not moving');
-		  		drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor);
+				drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor, player.type);
 			}
 			tile_xcoor = tile_xcoor+1;
 		}
 		tile_xcoor = 0;
 		tile_ycoor = tile_ycoor+1;
+	}
+}
+
+function drawPlayer(map) {
+	// Onscreen tile index
+	var tile_xcoor = 0;
+	var tile_ycoor = 0;
+
+	// Calculate vertical start and end points for camera
+	var start_y;
+	var end_y;
+	if (player.ycoor-map.radius < map.radius) {
+		start_y = player.ycoor-map.radius;
+		end_y = player.ycoor+map.radius;
+	} else if (player.ycoor+map.radius > map.height) {
+		start_y = player.ycoor-map.radius;
+		end_y = map.height+map.radius-1;
+	}
+	else {
+		start_y = player.ycoor-map.radius;
+		end_y = player.ycoor+map.radius;
+	}
+
+	var start_x;
+	var end_x;
+	if (player.xcoor-map.radius < map.radius){
+		start_x = player.xcoor-map.radius;
+		end_x = player.xcoor+map.radius;
+	} else if (player.xcoor+map.radius > map.width) {
+		start_x = player.xcoor-map.radius;
+		end_x = map.width+map.radius-1;
+	} else {
+		start_x = player.xcoor-map.radius;
+		end_x = player.xcoor+map.radius;
+	}
+
+	// For all tiles within a certain radius around the player
+  	for(var y = start_y; y <= end_y; y++) {
+  		for(var x = start_x; x <= end_x; x++) {
+  			if (map.tile_array[x][y].type == 2) {
+				for (var gamePlayer = 0; gamePlayer < 2; gamePlayer++){
+					if (gamePlayer === 0) {
+						if (player.xcoor == x && player.ycoor == y) {
+						// draw player character
+						drawPlayerObject(player.type, player.direction, (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
+						} 
+					} else {
+						if (opponent.xcoor == x && opponent.ycoor == y){
+						// draw opponent
+						drawPlayerObject(opponent.type, opponent.direction, (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
+						}
+					}
+				}
+	  			/*
+				if (player.xcoor == start_x && player.ycoor == start_y) {
+	  				// draw player character
+		  			drawPlayerObject(player.type, player.direction, (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
+	  			
+	  			} else if (opponent.xcoor == start_x && opponent.ycoor == start_y){
+					// draw opponent
+					drawPlayerObject(opponent.type, opponent.direction, (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
+				}
+				*/
+			}
+			tile_xcoor = tile_xcoor+1;
+  		}
+		tile_xcoor = 0;
+		tile_ycoor = tile_ycoor+1;
+	}
+}
+
+function drawPlayerMotion(map, offset) {
+	// Onscreen tile index
+	var tile_xcoor = 0;
+	var tile_ycoor = 0;
+
+	// Calculate vertical start and end points for camera
+	var start_y;
+	var end_y;
+	if (player.ycoor-map.radius < map.radius) {
+		start_y = player.ycoor-map.radius;
+		end_y = player.ycoor+map.radius;
+	} else if (player.ycoor+map.radius > map.height) {
+		start_y = player.ycoor-map.radius;
+		end_y = map.height+map.radius-1;
+	}
+	else {
+		start_y = player.ycoor-map.radius;
+		end_y = player.ycoor+map.radius;
+	}
+
+	var start_x;
+	var end_x;
+	if (player.xcoor-map.radius < map.radius){
+		start_x = player.xcoor-map.radius;
+		end_x = player.xcoor+map.radius;
+	} else if (player.xcoor+map.radius > map.width) {
+		start_x = player.xcoor-map.radius;
+		end_x = map.width+map.radius-1;
+	} else {
+		start_x = player.xcoor-map.radius;
+		end_x = player.xcoor+map.radius;
+	}
+
+	// For all tiles within a certain radius around the player
+  	for(var y = start_y; y <= end_y; y++) {
+  		for(var x = start_x; x <= end_x; x++) {
+  			// Draw player
+  			if (map.tile_array[x][y].type == 2) {
+	  			// Check if the current map tile contains the current player
+	  			if (player.xcoor == x && player.ycoor == y) {
+	  				if(player.distance_left <= 0) {
+	  					player.distance_left = 0;
+	  					player.moving = 0;
+	  				} else {
+	  					player.distance_left = player.distance_left - 8.6;
+	  				}
+	  					
+	  				switch (player.direction) {
+	  					case "left":
+	  						drawPlayerObject(player.type, 'left', (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
+	  						break;
+	  					case "right":
+	  						drawPlayerObject(player.type, 'right', (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
+	  						break;
+	 					case "up":
+	  						drawPlayerObject(player.type, 'up', (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
+	  						break;
+	  					case "down":
+	  						drawPlayerObject(player.type, 'down', (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
+	  						break;
+	  					default:
+	  				}
+	  			}
+	  			
+  			}
+			tile_xcoor = tile_xcoor + 1;
+		}
+		tile_xcoor = 0;
+		tile_ycoor = tile_ycoor + 1;
+  	}
+}
+
+function drawPlayerObject(type, direction, xcoor, ycoor, tile_size) {
+	switch(direction) {
+		case 'down':
+			if (type == 'defender'){
+				image(defender_back, xcoor, ycoor, tile_size*(2/3),tile_size*(2/3));
+			} else {
+				image(attacker_back, xcoor, ycoor, tile_size*(2/3),tile_size*(2/3));
+			}
+			break;
+		case 'up':
+			if (type =='defender'){
+				image(defender_front, xcoor, ycoor, tile_size*(2/3),tile_size*(2/3));
+			} else {
+				image(attacker_front, xcoor, ycoor, tile_size*(2/3),tile_size*(2/3));
+			}
+			break;
+		case 'left':
+			if (type == 'defender'){
+				image(defender_left, xcoor, ycoor, tile_size*(2/3),tile_size*(2/3));
+			} else {
+				image(attacker_left, xcoor, ycoor, tile_size*(2/3),tile_size*(2/3));
+			}
+			break;
+		case 'right':
+			if (type == 'defender'){
+				image(defender_right, xcoor, ycoor, tile_size*(2/3),tile_size*(2/3));
+			} else {
+				image(attacker_right, xcoor, ycoor, tile_size*(2/3),tile_size*(2/3));
+			}
+			break;
+		default:
+			if (type == 'defender'){
+				image(defender_front, xcoor, ycoor, tile_size*(2/3),tile_size*(2/3));
+			} else {
+				image(attacker_front, xcoor, ycoor, tile_size*(2/3),tile_size*(2/3));
+			}
+	}
+}
+
+function edgeCase() {
+	if(map_zone == 1) {
+		return true;
+	}
+	if ((map_zone == 2 && (player.direction == "up" || player.direction == "down")) ||
+		(player.ycoor-map_radius-1 == 0 && map_zone == 5 && player.direction == "up") ||
+		(player.xcoor-map_radius-1 == 0 && map_zone == 2 && player.direction == "right") ||
+		(player.xcoor+map_radius+1 == map.width-1 && map_zone == 2 && player.direction == "left")) {
+		return true;
+	}
+	if (map_zone == 3) {
+		return true;
+	}
+	if ((map_zone == 4 && (player.direction == "left" || player.direction == "right")) ||
+		(player.xcoor-map_radius-1 == 0 && map_zone == 5 && player.direction == "right") ||
+		(player.ycoor-map_radius-1 == 0 && map_zone == 4 && player.direction == "up") ||
+		(player.ycoor+map_radius+1 == map.height-1 && map_zone == 4 && player.direction == "down")) {
+		return true;
+	}
+	if ((map_zone == 6 && (player.direction == "left" || player.direction == "right")) ||
+		(player.xcoor+map_radius+1 == map.width-1 && map_zone == 5 && player.direction == "left") ||
+		(player.ycoor-map_radius-1 == 0 && map_zone == 6 && player.direction == "up") ||
+		(player.ycoor+map_radius+1 == map.height-1 && map_zone == 6 && player.direction == "down")) {
+		return true;
+	}
+	if (map_zone == 7) {
+		return true;
+	}
+	if ((map_zone == 8 && (player.direction == "up" || player.direction == "down")) ||
+		(player.ycoor+map_radius+1 == map.height-1 && map_zone == 5 && player.direction == "down") ||
+		(player.xcoor-map_radius-1 == 0 && map_zone == 8 && player.direction == "right") ||
+		(player.xcoor+map_radius+1 == map.width-1 && map_zone == 8 && player.direction == "left")) {
+		return true;
+	}
+	if (map_zone == 9) {
+		return true;
+	}
+	return false;
+}
+
+function drawTile(tile, xcoor, ycoor, playerType) {
+	switch(tile.type){
+		case 0:
+			image(grass,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
+			break;
+		case 1:
+			image(wall,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
+			break;
+		case 2:
+			image(grass,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
+			break;
+		case 3:
+			image(grass,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
+			image(objective,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
+			break;
+		default:
+			image(grass,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
+	}
+}
+
+function drawTileMotion(tile, xcoor, ycoor, cursor_x, cursor_y, offset) {
+	// Draw rectangle of the proper size at the proper place onscreen
+	switch (player.direction) {
+		case "left":
+			switch(tile.type){
+				case 0:
+					image(grass,tile.size*xcoor-offset,tile.size*ycoor,tile.size,tile.size);
+					break;
+				case 1:
+					image(wall,tile.size*xcoor-offset,tile.size*ycoor,tile.size,tile.size);
+					break;
+			}
+			break;
+		case "right":
+			switch(tile.type){
+				case 0:
+					image(grass,tile.size*xcoor+offset,tile.size*ycoor,tile.size,tile.size);
+					break;
+				case 1:
+					image(wall,tile.size*xcoor+offset,tile.size*ycoor,tile.size,tile.size);
+					break;
+			}
+			break;
+		case "up":
+			switch(tile.type){
+				case 0:
+					image(grass,tile.size*xcoor,tile.size*ycoor+offset,tile.size,tile.size);
+					break;
+				case 1:
+					image(wall,tile.size*xcoor,tile.size*ycoor+offset,tile.size,tile.size);
+					break;
+			}
+			image(grass,tile.size*xcoor,tile.size*ycoor+offset,tile.size,tile.size);
+			break;
+		case "down":
+			switch(tile.type){
+				case 0:
+					image(grass,tile.size*xcoor,tile.size*ycoor-offset,tile.size,tile.size);
+					break;
+				case 1:
+					image(wall,tile.size*xcoor,tile.size*ycoor-offset,tile.size,tile.size);
+					break;
+			}
+			break;
+		default:
 	}
 }
 
@@ -429,244 +708,6 @@ function findZone() {
 	if (player.ycoor+map_radius+1 > map.height-1) {
 		map_zone = 8;
 		return true;
-	}
-}
-
-
-function drawPlayerMotion(map, offset) {
-	// Onscreen tile index
-	var tile_xcoor = 0;
-	var tile_ycoor = 1;
-
-	// Calculate start and end points for camera
-	var start_y;
-	var end_y;
-	if (player.ycoor-map_radius-1 < 0) {
-		start_y = 0
-		end_y = map_radius*2+2;
-	} else if (player.ycoor+map_radius+1 > map.height-1) {
-		start_y = map.height-1-(map_radius*2);
-		end_y = map.height-1;
-	}
-	else {
-		start_y = player.ycoor-map_radius-1;
-		end_y = player.ycoor+map_radius+1;
-	}
-
-	// For all tiles within a certain radius around the player
-  	for(start_y; start_y <= end_y; start_y++) {
-  		var start_x;
-		var end_x;
-		if (player.xcoor-map_radius-1 < 0) {
-			start_x = 0
-			end_x = map_radius*2+2;
-		} else if (player.xcoor+map_radius+1 > map.width-1) {
-			start_x = map.width-1-(map_radius*2);
-			end_x = map.width-1;
-		}
-		else {
-			start_x = player.xcoor-map_radius-1;
-			end_x = player.xcoor+map_radius+1;
-		}
-  		
-  		for(start_x; start_x <= end_x; start_x++) {
-  			// Iterate through the onscreen tiles
-  			if(tile_xcoor==map_radius*2+3) {
-  				tile_xcoor=1;
-  				tile_ycoor++;
-  			} else {
-  				tile_xcoor++;
-  			}
-
-  			// Draw player
-  			if (map.tile_array[start_x][start_y].tile_data == 2) {
-	  			// Check if the current map tile contains the current player
-	  			if (player.xcoor == start_x && player.ycoor == start_y) {
-	  				// Draw the player at the correct onscreen tile
-	  				fill(player.player_color);
-	  				if(player.distance_left <= 0) {
-	  					player.distance_left = 0;
-	  					player.moving = 0;
-	  				} else {
-	  					player.distance_left = player.distance_left - 8.6;
-	  				}
-	  					
-	  				switch (player.direction) {
-	  					case "left":
-	  						if (map_zone == 2) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1)+offset,map.tile_size*(1.5+tile_ycoor-1),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 3) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor+7)+offset,map.tile_size*(1.5+tile_ycoor-1),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 6) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor)+offset,map.tile_size*(1.5+tile_ycoor),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 7) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1)+offset,map.tile_size*(1.5+tile_ycoor+1),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (player.xcoor+map_radius+1 == map.width-1 && map_zone == 8) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1)+offset,map.tile_size*(1.5+tile_ycoor+1),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 9 && player.xcoor+1+map_radius == map.width) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-2)+offset,map.tile_size*(1.5+tile_ycoor+2),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 9) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-2)+offset,map.tile_size*(1.5+tile_ycoor+2), map.tile_size*.8,map.tile_size*.8);
-	  						} else {
- 								ellipse(map.tile_size*(1.5+tile_xcoor-1)+offset,map.tile_size*(1.5+tile_ycoor-1),map.tile_size*.8,map.tile_size*.8);
-	 						}
-	  						break;
-	  					case "right":
-	  						if (map_zone == 2) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1)-offset,map.tile_size*(1.5+tile_ycoor-1),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 3 && player.xcoor+map_radius+1 == map.width) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-6)-offset,map.tile_size*(1.5+tile_ycoor),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 3) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor+7)-offset,map.tile_size*(1.5+tile_ycoor-1),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 6) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor)-offset,map.tile_size*(1.5+tile_ycoor), map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 7) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1)-offset,map.tile_size*(1.5+tile_ycoor+1),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (player.xcoor-map_radius-1 == 0 && map_zone == 8) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1)-offset,map.tile_size*(1.5+tile_ycoor+1),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 9 && player.xcoor+1+map_radius == map.width) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-2)-offset,map.tile_size*(1.5+tile_ycoor+2),map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 9) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-2)-offset,map.tile_size*(1.5+tile_ycoor+2), map.tile_size*.8,map.tile_size*.8);
-	  						} else {
-	 							ellipse(map.tile_size*(1.5+tile_xcoor-1)-offset,map.tile_size*(1.5+tile_ycoor-1),map.tile_size*.8,map.tile_size*.8);	  								
-	  						}
-	  						break;
-	 					case "up":
-	  						if (map_zone == 2) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1),map.tile_size*(1.5+tile_ycoor-1)-offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 3) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-4),map.tile_size*(1.5+tile_ycoor)-offset,map.tile_size*.8,map.tile_size*.8);
-	 						} else if (map_zone == 6 && player.ycoor-map_radius-1 == 0) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor),map.tile_size*(1.5+tile_ycoor)-offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 7) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1),map.tile_size*(1.5+tile_ycoor+1)-offset,map.tile_size*.8,map.tile_size*.8);
-	 						} else if (map_zone == 8) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1),map.tile_size*(1.5+tile_ycoor+1)-offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 9 && player.ycoor+1+map_radius == map.height) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor),map.tile_size*(1.5+tile_ycoor-1)-offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 9) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor),map.tile_size*(1.5+tile_ycoor-1)-offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1),map.tile_size*(1.5+tile_ycoor-1)-offset,map.tile_size*.8,map.tile_size*.8);
-	  						} 
-	  						break;
-	  					case "down":
-	  						if (map_zone == 2) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1),map.tile_size*(1.5+tile_ycoor-1)+offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 3 && player.ycoor-map_radius-1 == 0) {
-	 							ellipse(map.tile_size*(1.5+tile_xcoor-4),map.tile_size*(1.5+tile_ycoor)+offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 3) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-4),map.tile_size*(1.5+tile_ycoor)+offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 6 && player.ycoor+1+map_radius == map.height-1) {
-	 							ellipse(map.tile_size*(1.5+tile_xcoor),map.tile_size*(1.5+tile_ycoor)+offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 6) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1),map.tile_size*(1.5+tile_ycoor-1)+offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 7) {
-	 							ellipse(map.tile_size*(1.5+tile_xcoor-1),map.tile_size*(1.5+tile_ycoor+1)+offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else if (map_zone == 8) {
-	  							ellipse(map.tile_size*(1.5+tile_xcoor-1),map.tile_size*(1.5+tile_ycoor+1)+offset,map.tile_size*.8,map.tile_size*.8);
-	  						} else {
-	 							ellipse(map.tile_size*(1.5+tile_xcoor-1),map.tile_size*(1.5+tile_ycoor-1)+offset,map.tile_size*.8,map.tile_size*.8);
-	  						} 
-	  						break;
-	  					default:
-	  				}
-	  			}
-	  			
-  			}
-		}
-  	}
-}
-
-function edgeCase() {
-	if(map_zone == 1) {
-		return true;
-	}
-	if ((map_zone == 2 && (player.direction == "up" || player.direction == "down")) ||
-		(player.ycoor-map_radius-1 == 0 && map_zone == 5 && player.direction == "up") ||
-		(player.xcoor-map_radius-1 == 0 && map_zone == 2 && player.direction == "right") ||
-		(player.xcoor+map_radius+1 == map.width-1 && map_zone == 2 && player.direction == "left")) {
-		return true;
-	}
-	if (map_zone == 3) {
-		return true;
-	}
-	if ((map_zone == 4 && (player.direction == "left" || player.direction == "right")) ||
-		(player.xcoor-map_radius-1 == 0 && map_zone == 5 && player.direction == "right") ||
-		(player.ycoor-map_radius-1 == 0 && map_zone == 4 && player.direction == "up") ||
-		(player.ycoor+map_radius+1 == map.height-1 && map_zone == 4 && player.direction == "down")) {
-		return true;
-	}
-	if ((map_zone == 6 && (player.direction == "left" || player.direction == "right")) ||
-		(player.xcoor+map_radius+1 == map.width-1 && map_zone == 5 && player.direction == "left") ||
-		(player.ycoor-map_radius-1 == 0 && map_zone == 6 && player.direction == "up") ||
-		(player.ycoor+map_radius+1 == map.height-1 && map_zone == 6 && player.direction == "down")) {
-		return true;
-	}
-	if (map_zone == 7) {
-		return true;
-	}
-	if ((map_zone == 8 && (player.direction == "up" || player.direction == "down")) ||
-		(player.ycoor+map_radius+1 == map.height-1 && map_zone == 5 && player.direction == "down") ||
-		(player.xcoor-map_radius-1 == 0 && map_zone == 8 && player.direction == "right") ||
-		(player.xcoor+map_radius+1 == map.width-1 && map_zone == 8 && player.direction == "left")) {
-		return true;
-	}
-	if (map_zone == 9) {
-		return true;
-	}
-	return false;
-}
-
-function drawTile(tile, xcoor, ycoor) {
-	switch(tile.type){
-		case 0:
-			image(grass,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
-			break;
-		case 1:
-			image(wall,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
-			break;
-		case 2:
-			image(grass,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
-			if (player.type == 'defender') {
-				image(defender_front, (tile.size+5)*xcoor, tile.size*ycoor, tile.size*(2/3),tile.size*(2/3));
-			} else if (player.type == 'attacker') {
-				image(attacker_front, (tile.size+5)*xcoor, tile.size*ycoor, tile.size*(2/3),tile.size*(2/3));
-			}
-
-			break;
-		case 3:
-			image(grass,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
-			image(objective,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
-			break;
-		default:
-	}
-
-
-	//rect(tile.size*xcoor, tile.size*ycoor, tile.size, tile.size);
-	
-}
-
-function drawTileMotion(tile, index_x, index_y,cursor_x,cursor_y, offset) {
-	// Get tile color
-	fill(tile.tile_color);
-
-	// Draw rectangle of the proper size at the proper place onscreen
-	switch (player.direction) {
-		case "left":
-			rect(tile.tile_size*(index_x)-offset,tile.tile_size*(index_y),tile.tile_size,tile.tile_size);
-			break;
-		case "right":
-			rect(tile.tile_size*(index_x)+offset,tile.tile_size*(index_y),tile.tile_size,tile.tile_size);
-			break;
-		case "up":
-			rect(tile.tile_size*(index_x),tile.tile_size*(index_y)+offset,tile.tile_size,tile.tile_size);
-			break;
-		case "down":
-			rect(tile.tile_size*(index_x),tile.tile_size*(index_y)-offset,tile.tile_size,tile.tile_size);
-			break;
-		default:
 	}
 }
 

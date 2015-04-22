@@ -60,7 +60,6 @@ function updateTileAccessibility(map, x, y) {
 	// Tile(x,y) is not on the left most column of tiles
 	// Tile to the left of Tile (x,y) is not a wall
 	// Only if all the above are true does it set tile to the left of Tile(x,y) as accessible
-	console.log(map.tile_array[x-1][y].type);
 	if (x != 0 && map.tile_array[x-1][y].type != 1) {
 		map.tile_array[x-1][y].tile_accessibility = 1;
 	} else {
