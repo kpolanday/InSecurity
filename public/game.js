@@ -26,8 +26,7 @@ var current_screen= 0;
 var cursor_x;
 var cursor_y;
 
-var io;
-var gameSocket;
+var socket = io.connect('http:localhost:3000');
 
 
 function preload() {
@@ -93,6 +92,7 @@ function Player(type, x, y) {
 	this.distance_left = 0;
 	this.edge = 0;
 	this.action = 'nothing';
+	this.numStars = 0;
 	
 	this.playerItems = new Array(0);
 
@@ -296,6 +296,8 @@ function drawGameSession() {
 	} else {
 		drawPlayer(map);
 	}
+
+	drawMiniMap(map.tile_size*(map.radius*2+2), 0, 7);
 }
 
 function drawMap(map) {
@@ -539,6 +541,41 @@ function drawPlayerObject(type, direction, xcoor, ycoor, tile_size) {
 	}
 }
 
+function drawMiniMap(start_x, start_y, mini_tile_size) {
+	fill(255);
+	noStroke();
+
+	for(var tile_y = 0; tile_y < map.ycoor; tile_y++) {
+		for (var tile_x = 0; tile_x < map.xcoor; tile_x++) {
+			switch(map.tile_array[tile_x][tile_y].type) {
+				case 0:
+					fill(255);
+					break;
+				case 1:
+					fill(0);	
+					break;
+				case 2:
+					if (player.xcoor == tile_x && player.ycoor == tile_y) {
+						fill(25,209,37);
+					} else {
+						fill(255);
+					}
+					break;
+				case 3:
+					fill(255,255,0);
+					break;
+				default:
+			}
+			rect(start_x+(mini_tile_size*(tile_x-2)),start_y+(mini_tile_size*(tile_y-2)),mini_tile_size,mini_tile_size);
+		}
+	}
+	stroke();
+	line(start_x,start_y,start_x+mini_tile_size*(map.xcoor-4),start_y);
+	line(start_x,start_y+mini_tile_size*(map.ycoor-4),start_x+mini_tile_size*(map.xcoor-4),start_y+mini_tile_size*(map.ycoor-4));
+	line(start_x,start_y,start_x,start_y+mini_tile_size*(map.ycoor-4));
+	line(start_x+mini_tile_size*(map.xcoor-4),start_y,start_x+mini_tile_size*(map.xcoor-4),start_y+mini_tile_size*(map.ycoor-4));
+}
+
 function edgeCase() {
 	if(map_zone == 1) {
 		return true;
@@ -589,15 +626,6 @@ function drawTile(tile, xcoor, ycoor, playerType) {
 			break;
 		case 2:
 			image(grass,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
-			
-			/*
-			if (player.type !== playerType ) {
-				drawPlayerObject(playerType, opponent.direction, (tile.size+4)*xcoor, tile.size*ycoor, tile.size);
-			} else {
-				drawPlayerObject(player.type, player.direction, (tile.size+4)*xcoor, tile.size*ycoor, tile.size);
-			}
-			*/
-			
 			break;
 		case 3:
 			image(grass,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
@@ -850,23 +878,54 @@ function keyPressed() {
 				// If any other key was pressed, do nothing
 		}
 	//}
-};// once the player has moved send data
+}
+;// once the player has moved send data
 function endTurn(){
-	if (player.type=='attacker' && player.action == 'moved'){}
+	var socket = io.connect();
+	if (player.xcoor == opponent.xcoor && player.ycoor == opponent.ycoor){
+		if (player.type == 'attacker') {
+			gameOver(opponent.type);
+		} else if (player.type == 'defender') {
+			gameOver(player.type);
+		}
+		
+		socket.in(room).emit('gameOver');
+	
+	} else if (player.type == 'attacker' && player.numStars == gameSettings.numObjectives){
+		gameOver(player.type);
+		socket.in(room).emit('gameOver');
+	
+	} else {
+		socket.in(room).emit('turnOver', socket.room, player);
+	}
 }
 
-function sendTurnData() {
+function sendTurnData(gameOver, winner) {
 	var turnData = {
 		'turn_num': turn_num+1,
 		'attacker': null,
 		'defender': null,
-		'gameOver': false
+		'gameOver': false,
+		'winner': ''
+	}
+
+	if (player.type == 'attacker') {
+		turnData.attacker = player;
+		turnData.defender = opponent;
+	} else if (player.type == 'defender') {
+		turnData.attacker = opponent;
+		turnData.defender = player;
+	}
+
+	if (gameOver) {
+		turnData.winner = winner;
 	}
 
 	var successHandler = function(data, textStatus, jqXHR){
 		gameSettings = new Settings(data.version, data);
 	};
 
+	
 	$.ajax({
 		url: '/turn', // sending game settings to DB
 		type: 'POST',
@@ -877,49 +936,40 @@ function sendTurnData() {
 	});
 }
 
-// once both players have made their moved resolve any conflicts
-function resolveConflict(){
-
-}
-
-// checks to see if a player is in a Room
-function isInRoom(){
-
-}
-
-// checks to see if a player can see the other player
-function canSee(){
-
-}
-
 // game over send data to database
-function gameOver(){
+function gameOver(winner){
+	sendTurnData(true);
+	window.location.assign("http://localhost:3000/gameOver")
 
+	if (player.type == winner) {
+		document.getElementById('winner').innerText = 'You Won!';
+	} else {
+		document.getElementById('winner').innerText = 'You Lost...';
+	}
+	
 };;$(document).ready(function() {
 	$(document).on('click', function(event) {
 		var target = $(event.target);
 
 		if (target.is('#Game1')){
 			sessionStorage.setItem('gameVersion', 1);
+
+			/*
+			socket.on('connect' function() {
+				socket.emit('play', socket.id);
+			});
+			*/
 		} else if (target.is('#Game2')){
 			sessionStorage.setItem('gameVersion', 2);
+
+			/*
+			socket.on('connect' function() {
+				socket.emit('play', socket.id);
+			});
+			*/
 		}
-
-		console.log(sessionStorage.gameVersion);
 	});
-});;function initGame(sio, socket) {
-	io = sio;
-	gameSocket = socket;
-	gameSocket.emit('connected', {message: 'You are connected!'});
-
-	gameSocket.on('chooseAttacker', chooseAttacker);
-	gameSocket.on('chooseDefender', chooseDefender);
-	gameSocket.on('foundPartner', foundPartner);
-	gameSocket.on('movePlayer', movePlayer);
-	gameSocket.on('quit', exitGame);
-}
-
-function chooseAttacker(id, room) {
+});;function chooseAttacker(id, room) {
 	console.log("Someone choose an attacker");
 	//if there are already defenders, send both players the other players id
 	if(defenders[room] && defenders[room].length!=0) {
@@ -960,8 +1010,13 @@ function exitGame() {
 	map.tile_array[player.xcoor][player.ycoor].type = 0;
 	// Check if there's an item on the new tile
 	if(map.tile_array[x][y].type != 0) {
-		// Set new tile data to not have an item
-		map.tile_array[x][y].type = 0;
+		if (player.type == 'attacker') {
+			// Set new tile data to not have an item
+			map.tile_array[x][y].type = 0;
+			player.num_stars = player.num_stars + 1;
+		}
+
+		/*
 		// Checks array of all in-play items to see which item was on the new tile
 		for (var object = 0; object < game_objects.length; object++) {
 			if (x == game_objects[object].xcoor && y == game_objects[object].ycoor) {
@@ -975,6 +1030,7 @@ function exitGame() {
 				game_objects.splice(object,1);
 			}
 		}
+		*/
 	}
 
 	// Updates tile accessibility for all tiles around the player's old tile
@@ -1005,6 +1061,7 @@ function exitGame() {
 
 	// Start movement animation
 	player.moving = 1;
+	player.action = 'move';
 	player.distance_left = map.tile_size;
 
 	// once the player finished moving end their turn;
@@ -1059,19 +1116,22 @@ function userHighlightsPossibleMove(map_x, map_y, mouse_x, mouse_y) {
 		return true;
 	}
  	return false;	
-};$(document).ready(function() {
+};var socket = io.connect('http:localhost:3000');
+$(document).ready(function() {
   $("#defender").on("click",function() {
   	sessionStorage.setItem('playerType', 'defender');
 
+  	var socket = io.connect();
 	socket.on('connect', function() {
-		socket.emit('chooseDefender', id, window.location.pathname);
+		socket.emit('chooseDefender', socket.id, socket.room);
 	});
   });
-  $("#attacker").on("click",function() {
+  $("#attacker").on("click", function() {
 	sessionStorage.setItem('playerType', 'attacker');
 
+	var socket = io.connect();
 	socket.on('connect', function() {
-		socket.emit('chooseAttacker', id, window.location.pathname);
+		socket.emit('chooseAttacker', socket.id, socket.room);
 	});
   });
 });

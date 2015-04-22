@@ -26,8 +26,7 @@ var current_screen= 0;
 var cursor_x;
 var cursor_y;
 
-var io;
-var gameSocket;
+var socket = io.connect('http:localhost:3000');
 
 
 function preload() {
@@ -93,6 +92,7 @@ function Player(type, x, y) {
 	this.distance_left = 0;
 	this.edge = 0;
 	this.action = 'nothing';
+	this.numStars = 0;
 	
 	this.playerItems = new Array(0);
 
@@ -296,6 +296,8 @@ function drawGameSession() {
 	} else {
 		drawPlayer(map);
 	}
+
+	drawMiniMap(map.tile_size*(map.radius*2+2), 0, 7);
 }
 
 function drawMap(map) {
@@ -537,6 +539,41 @@ function drawPlayerObject(type, direction, xcoor, ycoor, tile_size) {
 				image(attacker_front, xcoor, ycoor, tile_size*(2/3),tile_size*(2/3));
 			}
 	}
+}
+
+function drawMiniMap(start_x, start_y, mini_tile_size) {
+	fill(255);
+	noStroke();
+
+	for(var tile_y = 0; tile_y < map.ycoor; tile_y++) {
+		for (var tile_x = 0; tile_x < map.xcoor; tile_x++) {
+			switch(map.tile_array[tile_x][tile_y].type) {
+				case 0:
+					fill(255);
+					break;
+				case 1:
+					fill(0);	
+					break;
+				case 2:
+					if (player.xcoor == tile_x && player.ycoor == tile_y) {
+						fill(25,209,37);
+					} else {
+						fill(255);
+					}
+					break;
+				case 3:
+					fill(255,255,0);
+					break;
+				default:
+			}
+			rect(start_x+(mini_tile_size*(tile_x-2)),start_y+(mini_tile_size*(tile_y-2)),mini_tile_size,mini_tile_size);
+		}
+	}
+	stroke();
+	line(start_x,start_y,start_x+mini_tile_size*(map.xcoor-4),start_y);
+	line(start_x,start_y+mini_tile_size*(map.ycoor-4),start_x+mini_tile_size*(map.xcoor-4),start_y+mini_tile_size*(map.ycoor-4));
+	line(start_x,start_y,start_x,start_y+mini_tile_size*(map.ycoor-4));
+	line(start_x+mini_tile_size*(map.xcoor-4),start_y,start_x+mini_tile_size*(map.xcoor-4),start_y+mini_tile_size*(map.ycoor-4));
 }
 
 function edgeCase() {

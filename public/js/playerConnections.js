@@ -1,15 +1,3 @@
-function initGame(sio, socket) {
-	io = sio;
-	gameSocket = socket;
-	gameSocket.emit('connected', {message: 'You are connected!'});
-
-	gameSocket.on('chooseAttacker', chooseAttacker);
-	gameSocket.on('chooseDefender', chooseDefender);
-	gameSocket.on('foundPartner', foundPartner);
-	gameSocket.on('movePlayer', movePlayer);
-	gameSocket.on('quit', exitGame);
-}
-
 function chooseAttacker(id, room) {
 	console.log("Someone choose an attacker");
 	//if there are already defenders, send both players the other players id

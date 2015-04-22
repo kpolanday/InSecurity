@@ -4,8 +4,13 @@ function movePlayer(player, map, x, y){
 	map.tile_array[player.xcoor][player.ycoor].type = 0;
 	// Check if there's an item on the new tile
 	if(map.tile_array[x][y].type != 0) {
-		// Set new tile data to not have an item
-		map.tile_array[x][y].type = 0;
+		if (player.type == 'attacker') {
+			// Set new tile data to not have an item
+			map.tile_array[x][y].type = 0;
+			player.num_stars = player.num_stars + 1;
+		}
+
+		/*
 		// Checks array of all in-play items to see which item was on the new tile
 		for (var object = 0; object < game_objects.length; object++) {
 			if (x == game_objects[object].xcoor && y == game_objects[object].ycoor) {
@@ -19,6 +24,7 @@ function movePlayer(player, map, x, y){
 				game_objects.splice(object,1);
 			}
 		}
+		*/
 	}
 
 	// Updates tile accessibility for all tiles around the player's old tile
@@ -49,6 +55,7 @@ function movePlayer(player, map, x, y){
 
 	// Start movement animation
 	player.moving = 1;
+	player.action = 'move';
 	player.distance_left = map.tile_size;
 
 	// once the player finished moving end their turn;
