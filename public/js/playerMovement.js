@@ -1,30 +1,52 @@
 function movePlayer(player, map, x, y){
 	// Update map data
 	// Set old title to unoccupied
-	map.tile_array[player.xcoor][player.ycoor].type = 0;
+
+	// check if the defender was on the objective
+	if (player.type == 'defender') {
+		for (var n = 0; n < settings.numObjectives; n++){
+			// if it wasn't already taken, redraw the objective
+			if(game_objects[n].type=='star' && game_objects[n].taken !== false) {
+				if(game_objects[n].xcoor == player.xcoor && game_objects[n].ycoor == player.ycoor){
+					map.tile_array[player.xcoor][player.ycoor].type = 3;
+				}
+			// else set it to unoccupied
+			} else {
+				map.tile_array[player.xcoor][player.ycoor].type = 0;
+			}
+		}
+
+	} else {
+		map.tile_array[player.xcoor][player.ycoor].type = 0;
+	}
+	
 	// Check if there's an item on the new tile
 	if(map.tile_array[x][y].type != 0) {
 		if (player.type == 'attacker') {
 			// Set new tile data to not have an item
 			map.tile_array[x][y].type = 0;
-			player.num_stars = player.num_stars + 1;
-		}
-
-		/*
-		// Checks array of all in-play items to see which item was on the new tile
-		for (var object = 0; object < game_objects.length; object++) {
-			if (x == game_objects[object].xcoor && y == game_objects[object].ycoor) {
-				// Adds the item to the player's inventory
-				game_inventories[selected_player].push(new InventoryObject(game_objects[object]));
-				// Checks to see if the player picked up a star
-				if (game_objects[object].object_id == 3) {
-					num_stars++;
+			player.numStars = player.numStars + 1;
+			for (var n = 0; n < settings.numObjectives; n++){
+				if(game_objects[n].type == 'star' && game_objects[n].xcoor == x && game_objects[n].ycoor == y){
+					game_objects[n].taken == true;
 				}
-				// Removes the item from the array of all in-play items
-				game_objects.splice(object,1);
 			}
 		}
-		*/
+
+		if (settings.enableItems == true) {
+			// Checks array of all in-play items to see which item was on the new tile
+			for (var object = 0; object < game_objects.length; object++) {
+				if (x == game_objects[object].xcoor && y == game_objects[object].ycoor) {
+					// Adds the item to the player's inventory
+					player.items.push(new GameObject(game_objects[object]));
+					game_objects[object].taken = true;
+
+					// Removes the item from the array of all in-play items
+					game_objects.splice(object,1);
+				}
+			}
+		}
+		
 	}
 
 	// Updates tile accessibility for all tiles around the player's old tile

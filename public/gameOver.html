@@ -27,8 +27,6 @@
 			transform: translate(-50%, -50%)">
 		<div class="panel panel-default">
 			<div class="panel-body" style="height: 525px;">
-				<h3 align="center">GAME OVER!</h3>
-				
 				<div class="container" style="width:500px; text-align:center;
 					border-radius: 1em;
 					padding: 1em;
@@ -38,12 +36,17 @@
 					margin-right: -50%;
 					transform: translate(-50%, -50%)">
 					
-					<div id="displayWinner"></div>
+					<h1>GAME OVER!</h1>
+					<h3 id="displayWinner"></h3>
 					<div id="gameInfo"></div>
+					<div align="center">
+						<a id="backButton" class="btn btn-lg btn-success" role="button" href="game1.html">Play Again</a>
+						<a id="backButton" class="btn btn-lg btn-default" role="button" href="gameSelection.html">Back</a>
+					</div>
+					
 				</div>
 			</div>
 			<div class="panel-footer">
-				<a id="backButton" class="btn btn-lg btn-default pull-right" role="button" href="gameSelection.html">Back</a>
 				<div class="clearfix"></div>
 			</div>
 		</div>

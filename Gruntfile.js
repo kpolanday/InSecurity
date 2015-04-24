@@ -20,7 +20,7 @@ module.exports = function(grunt) {
 			}
 		},
 		jshint: {
-			files: ['Gruntfile.js', './app.js', './playerConnections.js'],
+			files: ['Gruntfile.js', './app.js', './game.js'],
 			options: {
 				globals: {
 					jQuery: true,

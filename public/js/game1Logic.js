@@ -1,6 +1,7 @@
 // once the player has moved send data
 function endTurn(){
-	var socket = io.connect();
+	//var socket = io.connect(window.location.hostname);
+	
 	if (player.xcoor == opponent.xcoor && player.ycoor == opponent.ycoor){
 		if (player.type == 'attacker') {
 			gameOver(opponent.type);
@@ -8,14 +9,14 @@ function endTurn(){
 			gameOver(player.type);
 		}
 		
-		socket.in(room).emit('gameOver');
+		//socket.in(room).emit('gameOver');
 	
-	} else if (player.type == 'attacker' && player.numStars == gameSettings.numObjectives){
+	} else if (player.type == 'attacker' && player.numStars == settings.numObjectives){
 		gameOver(player.type);
-		socket.in(room).emit('gameOver');
+		//socket.in(room).emit('gameOver');
 	
 	} else {
-		socket.in(room).emit('turnOver', socket.room, player);
+		//socket.in(room).emit('turnOver', socket.room, player);
 		sendTurnData(false, '');
 	}
 
@@ -42,11 +43,7 @@ function sendTurnData(gameOver, winner) {
 		turnData.winner = winner;
 	}
 
-	var successHandler = function(data, textStatus, jqXHR){
-		gameSettings = new Settings(data.version, data);
-	};
-
-	
+	/*
 	$.ajax({
 		url: '/turn', // sending game settings to DB
 		type: 'POST',
@@ -55,17 +52,18 @@ function sendTurnData(gameOver, winner) {
 		dataType: 'json',
 		success: successHandler
 	});
+	*/
 }
 
 // game over send data to database
 function gameOver(winner){
 	sendTurnData(true);
-	window.location.assign("http://localhost:3000/gameOver")
+	window.location.assign("http://localhost:3000/gameOver.html");
 
 	if (player.type == winner) {
-		document.getElementById('winner').innerText = 'You Won!';
+		document.getElementById('displayWinner').innerText = 'You Won!';
 	} else {
-		document.getElementById('winner').innerText = 'You Lost...';
+		document.getElementById('displayWinner').innerText = 'You Lost...';
 	}
 	
 }

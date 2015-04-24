@@ -1,19 +1,43 @@
-var socket = io.connect('http:localhost:3000');
 $(document).ready(function() {
-  $("#defender").on("click",function() {
-  	sessionStorage.setItem('playerType', 'defender');
+	var socket = io.connect(window.location.hostname);
 
-  	var socket = io.connect();
-	socket.on('connect', function() {
-		socket.emit('chooseDefender', socket.id, socket.room);
-	});
-  });
-  $("#attacker").on("click", function() {
-	sessionStorage.setItem('playerType', 'attacker');
+	$("#defender").on("click",function() {
+  		sessionStorage.setItem('playerType', 'defender');
+		socket.on('connect', function() {
+			socket.emit('chooseDefender', socket.id);
+		});
 
-	var socket = io.connect();
-	socket.on('connect', function() {
-		socket.emit('chooseAttacker', socket.id, socket.room);
+		socket.on('foundOpponent', function(opponent, room) {
+			socket.leave(socket.room);
+			socket.join(room);
+
+			startGame(sessionStorage.gameVersion);
+		});
+  	});
+  	$("#attacker").on("click", function() {
+		sessionStorage.setItem('playerType', 'attacker');
+
+		socket.on('connect', function() {
+			socket.emit('chooseAttacker', socket.id);
+		});
+
+		socket.on('foundOpponent', function(opponent, room) {
+			socket.leave(socket.room);
+			socket.join(room);
+
+			startGame(sessionStorage.gameVersion);
+		});
+
 	});
-  });
 });
+
+function startGame(game) {
+	switch(game){
+		case 1:
+			window.location.assign('http://localhost:3000/game1.html');
+			break;
+		default:
+			window.location.assign('http://localhost:3000/game1.html');
+
+	}
+}

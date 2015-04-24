@@ -17,17 +17,11 @@ var game = sessionStorage.gameVersion;
 var settings;
 var canvas;
 var map;
-var map_radius = 2;
-var map_zone;
 var playerType = sessionStorage.playerType;
 var game_objects;
 
-var current_screen= 0;
 var cursor_x;
 var cursor_y;
-
-var socket = io.connect('http:localhost:3000');
-
 
 function preload() {
 	grass = loadImage('/images/grass.png');
@@ -48,7 +42,7 @@ function preload() {
 }
 
 function setup() {
-	canvas = createCanvas(500, 500);
+	canvas = createCanvas(800, 500);
 	canvas.parent('gameContainer');
 
 	sendGameSettings();
@@ -56,13 +50,7 @@ function setup() {
 }
 
 function draw() {
-	background(51);
-	//var img;
-	//img = loadImage("individualsprites/grass.jpg");
-	//image(img,0,0);
 	drawGameSession();
-	//image(grass,0,0);
-	
 }
 
 
@@ -74,6 +62,7 @@ function Settings(version, gameSettings) {
 	this.game_id = gameSettings.game_id; // you return this to me when you create the settings object
 	this.map_width = gameSettings.map_width;
 	this.map_height = gameSettings.map_height;
+	this.map_radius = gameSettings.map_radius;
 	this.numObjectives = gameSettings.numObjectives; // default = 3, can have more depending on map
 	this.view = gameSettings.view; // 'default', 'camera'
 	this.enableItems = gameSettings.enableItems; // bool
@@ -190,13 +179,13 @@ function sendGameSettings() {
 		'game_id': Math.floor((Math.random() * 1000000) + 1),
 		'map_width': 29,
 		'map_height': 29,
-		'map_radius': 2,
+		'map_radius': 3,
 		'numObjectives': 3,
 		'view': 'camera',
 		'enableItems': false
 	}; 
 
-	gameSettings = new Settings(defaultSettings.game_version, defaultSettings);
+	settings = new Settings(defaultSettings.game_version, defaultSettings);
 }
 
 /**********************
@@ -248,7 +237,7 @@ function setupGame() {
 	 	[0,0,1,0,0,1,0,0,1,0,0,1,0,0,0,1,0,0,1,0,0,1,1,1,0,0,1,0,0],
 	 	[0,0,1,0,1,1,0,0,1,0,0,1,1,0,1,1,0,0,0,0,0,1,1,1,0,0,1,0,0],
 	 	[0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,0,0],
-	 	[0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,3,1,0,0],
+	 	[0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,1,0,0],
 	 	[0,0,1,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,0,0,0,0,1,0,0],
 	 	[0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,1,1,0,1,0,0],
 	 	[0,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,1,0,0],
@@ -257,8 +246,7 @@ function setupGame() {
 	 	[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
 	 	[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
 
-	map = new GameMap(29,29, 3, mapArray);
-	console.log(playerType);
+	map = new GameMap(settings.map_width, settings.map_height, settings.map_radius, mapArray);
 	
 	if (playerType == 'attacker'){
 		player = new Player(playerType, 6, 24);
@@ -268,11 +256,11 @@ function setupGame() {
 		opponent = new Player('attacker', 6, 24);
 	}
 
-	num_stars = gameSettings.numObjectives;
-	game_objects = new Array(gameSettings.numObjectives);
-	game_objects[0] = ('star', 6, 6);
-	game_objects[1] = ('star', 7, 25);
-	game_objects[2] = ('star', 21,25);
+	num_stars = settings.numObjectives;
+	game_objects = new Array(0);
+	game_objects.push(new GameObject('star', 6, 6));
+	game_objects.push(new GameObject('star', 7, 25));
+	game_objects.push(new GameObject('star', 4, 17));
 
 	// Update player accessibility;
 	updateTileAccessibility(map, player.xcoor, player.ycoor);
@@ -297,15 +285,13 @@ function drawGameSession() {
 		drawPlayer(map);
 	}
 
-	drawMiniMap(map.tile_size*(map.radius*2+2), 0, 7);
+	drawMiniMap();
 }
 
 function drawMap(map) {
 	// Onscreen tile index
 	var tile_xcoor = 0;
 	var tile_ycoor = 0;
-
-	findZone();
 
 	// Calculate vertical start and end points for camera
 	var start_y;
@@ -343,17 +329,12 @@ function drawMap(map) {
 				if (player.distance_left < 0) {
 					player.distance_left = 0;
 					player.moving = 0;
-					drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor, player.type);
+					drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor);
 				} else {
-					if (edgeCase()) {
-						drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor, player.type);
-					} else {
-						player.distance_left = player.distance_left - .06;
-						drawTileMotion(map.tile_array[x][y],tile_xcoor,tile_ycoor,cursor_x,cursor_y,player.distance_left);
-					}
+					drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor);
 				}
 			} else {
-				drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor, player.type);
+				drawTile(map.tile_array[x][y], tile_xcoor, tile_ycoor);
 			}
 			tile_xcoor = tile_xcoor+1;
 		}
@@ -412,16 +393,6 @@ function drawPlayer(map) {
 						}
 					}
 				}
-	  			/*
-				if (player.xcoor == start_x && player.ycoor == start_y) {
-	  				// draw player character
-		  			drawPlayerObject(player.type, player.direction, (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
-	  			
-	  			} else if (opponent.xcoor == start_x && opponent.ycoor == start_y){
-					// draw opponent
-					drawPlayerObject(opponent.type, opponent.direction, (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
-				}
-				*/
 			}
 			tile_xcoor = tile_xcoor+1;
   		}
@@ -469,29 +440,31 @@ function drawPlayerMotion(map, offset) {
   			// Draw player
   			if (map.tile_array[x][y].type == 2) {
 	  			// Check if the current map tile contains the current player
-	  			if (player.xcoor == x && player.ycoor == y) {
-	  				if(player.distance_left <= 0) {
-	  					player.distance_left = 0;
-	  					player.moving = 0;
-	  				} else {
-	  					player.distance_left = player.distance_left - 8.6;
-	  				}
+	  			for (var gamePlayer = 0; gamePlayer < 2; gamePlayer++){
+	  				if (gamePlayer == 0) {
+	  					if (player.xcoor == x && player.ycoor == y) {
+	  						if(player.distance_left <= 0) {
+	  							player.distance_left = 0;
+	  							player.moving = 0;
+	  						} else {
+	  							player.distance_left = player.distance_left - 8.6;
+	  						}
 	  					
-	  				switch (player.direction) {
-	  					case "left":
-	  						drawPlayerObject(player.type, 'left', (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
-	  						break;
-	  					case "right":
-	  						drawPlayerObject(player.type, 'right', (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
-	  						break;
-	 					case "up":
-	  						drawPlayerObject(player.type, 'up', (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
-	  						break;
-	  					case "down":
-	  						drawPlayerObject(player.type, 'down', (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
-	  						break;
-	  					default:
+	  						drawPlayerObject(player.type, player.direction, (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
+	  					}
+	  				} else {
+	  					if (opponent.xcoor == x && opponent.ycoor == y) {
+	  						if(opponent.distance_left <= 0) {
+	  							opponent.distance_left = 0;
+	  							opponent.moving = 0;
+	  						} else {
+	  							opponent.distance_left = opponent.distance_left - 8.6;
+	  						}
+	  					
+	  						drawPlayerObject(opponent.type, opponent.direction, (map.tile_size+4)*(tile_xcoor), map.tile_size*(tile_ycoor), map.tile_size);
+	  					}
 	  				}
+	  				
 	  			}
 	  			
   			}
@@ -541,13 +514,18 @@ function drawPlayerObject(type, direction, xcoor, ycoor, tile_size) {
 	}
 }
 
-function drawMiniMap(start_x, start_y, mini_tile_size) {
+function drawMiniMap() {
+	var mini_tile_size = 8;
+	var map_width = map.width + map.radius;
+	var map_height = map.height + map.radius;
+	var start_x = (map.radius*2+1)*map.tile_size + 10;
+
 	fill(255);
 	noStroke();
 
-	for(var tile_y = 0; tile_y < map.ycoor; tile_y++) {
-		for (var tile_x = 0; tile_x < map.xcoor; tile_x++) {
-			switch(map.tile_array[tile_x][tile_y].type) {
+	for(var y = 0; y < map_height; y++) {
+		for (var x = 0; x < map_width; x++) {
+			switch(map.tile_array[x][y].type) {
 				case 0:
 					fill(255);
 					break;
@@ -555,68 +533,23 @@ function drawMiniMap(start_x, start_y, mini_tile_size) {
 					fill(0);	
 					break;
 				case 2:
-					if (player.xcoor == tile_x && player.ycoor == tile_y) {
-						fill(25,209,37);
+					if (player.xcoor == x && player.ycoor == y) {
+						fill(0,38,255);
 					} else {
 						fill(255);
 					}
 					break;
 				case 3:
-					fill(255,255,0);
+					fill(181,181,7);
 					break;
 				default:
 			}
-			rect(start_x+(mini_tile_size*(tile_x-2)),start_y+(mini_tile_size*(tile_y-2)),mini_tile_size,mini_tile_size);
+			rect((mini_tile_size*x)+start_x, y*mini_tile_size, mini_tile_size, mini_tile_size);
 		}
 	}
-	stroke();
-	line(start_x,start_y,start_x+mini_tile_size*(map.xcoor-4),start_y);
-	line(start_x,start_y+mini_tile_size*(map.ycoor-4),start_x+mini_tile_size*(map.xcoor-4),start_y+mini_tile_size*(map.ycoor-4));
-	line(start_x,start_y,start_x,start_y+mini_tile_size*(map.ycoor-4));
-	line(start_x+mini_tile_size*(map.xcoor-4),start_y,start_x+mini_tile_size*(map.xcoor-4),start_y+mini_tile_size*(map.ycoor-4));
 }
 
-function edgeCase() {
-	if(map_zone == 1) {
-		return true;
-	}
-	if ((map_zone == 2 && (player.direction == "up" || player.direction == "down")) ||
-		(player.ycoor-map_radius-1 == 0 && map_zone == 5 && player.direction == "up") ||
-		(player.xcoor-map_radius-1 == 0 && map_zone == 2 && player.direction == "right") ||
-		(player.xcoor+map_radius+1 == map.width-1 && map_zone == 2 && player.direction == "left")) {
-		return true;
-	}
-	if (map_zone == 3) {
-		return true;
-	}
-	if ((map_zone == 4 && (player.direction == "left" || player.direction == "right")) ||
-		(player.xcoor-map_radius-1 == 0 && map_zone == 5 && player.direction == "right") ||
-		(player.ycoor-map_radius-1 == 0 && map_zone == 4 && player.direction == "up") ||
-		(player.ycoor+map_radius+1 == map.height-1 && map_zone == 4 && player.direction == "down")) {
-		return true;
-	}
-	if ((map_zone == 6 && (player.direction == "left" || player.direction == "right")) ||
-		(player.xcoor+map_radius+1 == map.width-1 && map_zone == 5 && player.direction == "left") ||
-		(player.ycoor-map_radius-1 == 0 && map_zone == 6 && player.direction == "up") ||
-		(player.ycoor+map_radius+1 == map.height-1 && map_zone == 6 && player.direction == "down")) {
-		return true;
-	}
-	if (map_zone == 7) {
-		return true;
-	}
-	if ((map_zone == 8 && (player.direction == "up" || player.direction == "down")) ||
-		(player.ycoor+map_radius+1 == map.height-1 && map_zone == 5 && player.direction == "down") ||
-		(player.xcoor-map_radius-1 == 0 && map_zone == 8 && player.direction == "right") ||
-		(player.xcoor+map_radius+1 == map.width-1 && map_zone == 8 && player.direction == "left")) {
-		return true;
-	}
-	if (map_zone == 9) {
-		return true;
-	}
-	return false;
-}
-
-function drawTile(tile, xcoor, ycoor, playerType) {
+function drawTile(tile, xcoor, ycoor) {
 	switch(tile.type){
 		case 0:
 			image(grass,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
@@ -634,134 +567,6 @@ function drawTile(tile, xcoor, ycoor, playerType) {
 		default:
 			image(grass,tile.size*xcoor,tile.size*ycoor,tile.size,tile.size);
 	}
-}
-
-function drawTileMotion(tile, xcoor, ycoor, cursor_x, cursor_y, offset) {
-	// Draw rectangle of the proper size at the proper place onscreen
-	switch (player.direction) {
-		case "left":
-			switch(tile.type){
-				case 0:
-					image(grass,tile.size*xcoor-offset,tile.size*ycoor,tile.size,tile.size);
-					break;
-				case 1:
-					image(wall,tile.size*xcoor-offset,tile.size*ycoor,tile.size,tile.size);
-					break;
-			}
-			break;
-		case "right":
-			switch(tile.type){
-				case 0:
-					image(grass,tile.size*xcoor+offset,tile.size*ycoor,tile.size,tile.size);
-					break;
-				case 1:
-					image(wall,tile.size*xcoor+offset,tile.size*ycoor,tile.size,tile.size);
-					break;
-			}
-			break;
-		case "up":
-			switch(tile.type){
-				case 0:
-					image(grass,tile.size*xcoor,tile.size*ycoor+offset,tile.size,tile.size);
-					break;
-				case 1:
-					image(wall,tile.size*xcoor,tile.size*ycoor+offset,tile.size,tile.size);
-					break;
-			}
-			image(grass,tile.size*xcoor,tile.size*ycoor+offset,tile.size,tile.size);
-			break;
-		case "down":
-			switch(tile.type){
-				case 0:
-					image(grass,tile.size*xcoor,tile.size*ycoor-offset,tile.size,tile.size);
-					break;
-				case 1:
-					image(wall,tile.size*xcoor,tile.size*ycoor-offset,tile.size,tile.size);
-					break;
-			}
-			break;
-		default:
-	}
-}
-
-function findZone() {
-	// Zone 1
-	if (player.ycoor-map_radius-1 < 0 && 
-		player.xcoor-map_radius-1 < 0) {
-		map_zone = 1;
-		return true;
-	}
-
-	// Zone 3
-	if (player.xcoor+map_radius+3>map.width+1 &&
-		player.ycoor-map_radius-1 < 0) {
-		map_zone = 3;
-		return true;
-	}
-
-	// Zone 2
-	if (player.ycoor-map_radius-1 < 0) {
-		map_zone = 2;
-		return true;
-	}
-
-	// Zone 4
-	if (player.ycoor-map_radius-1 >= 0 && 
-		player.ycoor+map_radius < map.height-1 &&
-		player.xcoor-map_radius-1 < 0) {
-		map_zone = 4;
-		return true;
-	}
-
-	// Zone 6
-	if (player.xcoor+map_radius+3>map.width+1 &&
-		player.ycoor-map_radius-1 >= 0 &&
-		player.ycoor+map_radius+1 < map.height) {
-		map_zone = 6;
-		return true;
-	}
-
-	// Zone 5
-	if (player.ycoor-map_radius-1 < 0) {
-		map_zone = 5;
-		return true;
-	}
-
-	// Zone 7
-	if (player.ycoor+map_radius+1 > map.height-1 && 
-		player.xcoor-map_radius-1 < 0) {
-		map_zone = 7;
-		return true;
-	}
-
-	// Zone 9
-	if (player.ycoor+map_radius+1 > map.height-1 && 
-		player.xcoor+map_radius+1 > map.width-1) {
-		map_zone = 9;
-		return true;
-	}
-
-	// Zone 8
-	if (player.ycoor+map_radius+1 > map.height-1) {
-		map_zone = 8;
-		return true;
-	}
-}
-
-function drawBorder() {
-	// Border covers edges of map
-	// so that map appears to slide in from each side
-	fill(255,255,255);
-	noStroke();
-	rect(0,40, 80,521);
-	rect(521,40, 80,521);
-	rect(40,0, 521,80);
-	rect(40,521, 521,80);
-	stroke();
-	line(80,80,80,520);
-	line(520,80,520,520);
-	line(80,80,520,80);
-	line(80,520,520,520);
 }
 
 function keyPressed() {
@@ -881,7 +686,8 @@ function keyPressed() {
 }
 ;// once the player has moved send data
 function endTurn(){
-	var socket = io.connect();
+	//var socket = io.connect(window.location.hostname);
+	
 	if (player.xcoor == opponent.xcoor && player.ycoor == opponent.ycoor){
 		if (player.type == 'attacker') {
 			gameOver(opponent.type);
@@ -889,15 +695,17 @@ function endTurn(){
 			gameOver(player.type);
 		}
 		
-		socket.in(room).emit('gameOver');
+		//socket.in(room).emit('gameOver');
 	
-	} else if (player.type == 'attacker' && player.numStars == gameSettings.numObjectives){
+	} else if (player.type == 'attacker' && player.numStars == settings.numObjectives){
 		gameOver(player.type);
-		socket.in(room).emit('gameOver');
+		//socket.in(room).emit('gameOver');
 	
 	} else {
-		socket.in(room).emit('turnOver', socket.room, player);
+		//socket.in(room).emit('turnOver', socket.room, player);
+		sendTurnData(false, '');
 	}
+
 }
 
 function sendTurnData(gameOver, winner) {
@@ -921,11 +729,7 @@ function sendTurnData(gameOver, winner) {
 		turnData.winner = winner;
 	}
 
-	var successHandler = function(data, textStatus, jqXHR){
-		gameSettings = new Settings(data.version, data);
-	};
-
-	
+	/*
 	$.ajax({
 		url: '/turn', // sending game settings to DB
 		type: 'POST',
@@ -934,103 +738,87 @@ function sendTurnData(gameOver, winner) {
 		dataType: 'json',
 		success: successHandler
 	});
+	*/
 }
 
 // game over send data to database
 function gameOver(winner){
 	sendTurnData(true);
-	window.location.assign("http://localhost:3000/gameOver")
+	window.location.assign("http://localhost:3000/gameOver.html")
 
 	if (player.type == winner) {
-		document.getElementById('winner').innerText = 'You Won!';
+		document.getElementById('displayWinner').innerText = 'You Won!';
 	} else {
-		document.getElementById('winner').innerText = 'You Lost...';
+		document.getElementById('displayWinner').innerText = 'You Lost...';
 	}
 	
 };;$(document).ready(function() {
+	var socket = io.connect(window.location.hostname);
 	$(document).on('click', function(event) {
 		var target = $(event.target);
 
 		if (target.is('#Game1')){
 			sessionStorage.setItem('gameVersion', 1);
-
-			/*
-			socket.on('connect' function() {
-				socket.emit('play', socket.id);
+			socket.on('connect', function() {
+				socket.emit('play', 1);
 			});
-			*/
+			
 		} else if (target.is('#Game2')){
 			sessionStorage.setItem('gameVersion', 2);
-
-			/*
-			socket.on('connect' function() {
-				socket.emit('play', socket.id);
+			socket.on('connect', function() {
+				socket.emit('play', 2);
 			});
-			*/
 		}
 	});
-});;function chooseAttacker(id, room) {
-	console.log("Someone choose an attacker");
-	//if there are already defenders, send both players the other players id
-	if(defenders[room] && defenders[room].length!=0) {
-		var defender = defenders[room].pop();
-		defender.connection.emit("foundPartner", id, "attacker");
-	}
-	//otherwise add them to a waiting list
-	else {
-		if(!attackers[room]) attackers[room]=[];
-		attackers[room].push({"id" : id, "connection" : socket});
-	}
-}
-
-function chooseDefender(id, room) {
-	console.log("Someone choose a defender");
-	if(attackers[room] && attackers[room].length!=0) {
-		var attacker = attackers[room].pop();
-		socket.emit("foundPartner", attacker.id, "defender");
-	}
-	else {
-		if(!defenders[room]) defenders[room] = [];
-		defenders[room].push({"id" : id, "connection" : socket});
-	}
-}
-
-function foundPartner(id, type) {
-	console.log('Connecting to: ', + id);
-	playerType = type;
-	startGame();
-}
-
-function exitGame() {
-	window.location = '/gameSelection';
-}
-;function movePlayer(player, map, x, y){
+});;function movePlayer(player, map, x, y){
 	// Update map data
 	// Set old title to unoccupied
-	map.tile_array[player.xcoor][player.ycoor].type = 0;
+
+	// check if the defender was on the objective
+	if (player.type == 'defender') {
+		for (var n = 0; n < settings.numObjectives; n++){
+			// if it wasn't already taken, redraw the objective
+			if(game_objects[n].type=='star' && game_objects[n].taken !== false) {
+				if(game_objects[n].xcoor == player.xcoor && game_objects[n].ycoor == player.ycoor){
+					map.tile_array[player.xcoor][player.ycoor].type = 3;
+				}
+			// else set it to unoccupied
+			} else {
+				map.tile_array[player.xcoor][player.ycoor].type = 0;
+			}
+		}
+
+	} else {
+		map.tile_array[player.xcoor][player.ycoor].type = 0;
+	}
+	
 	// Check if there's an item on the new tile
 	if(map.tile_array[x][y].type != 0) {
 		if (player.type == 'attacker') {
 			// Set new tile data to not have an item
 			map.tile_array[x][y].type = 0;
-			player.num_stars = player.num_stars + 1;
-		}
-
-		/*
-		// Checks array of all in-play items to see which item was on the new tile
-		for (var object = 0; object < game_objects.length; object++) {
-			if (x == game_objects[object].xcoor && y == game_objects[object].ycoor) {
-				// Adds the item to the player's inventory
-				game_inventories[selected_player].push(new InventoryObject(game_objects[object]));
-				// Checks to see if the player picked up a star
-				if (game_objects[object].object_id == 3) {
-					num_stars++;
+			player.numStars = player.numStars + 1;
+			for (var n = 0; n < settings.numObjectives; n++){
+				if(game_objects[n].type == 'star' && game_objects[n].xcoor == x && game_objects[n].ycoor == y){
+					game_objects[n].taken == true;
 				}
-				// Removes the item from the array of all in-play items
-				game_objects.splice(object,1);
 			}
 		}
-		*/
+
+		if (settings.enableItems == true) {
+			// Checks array of all in-play items to see which item was on the new tile
+			for (var object = 0; object < game_objects.length; object++) {
+				if (x == game_objects[object].xcoor && y == game_objects[object].ycoor) {
+					// Adds the item to the player's inventory
+					player.items.push(new GameObject(game_objects[object]));
+					game_objects[object].taken = true;
+
+					// Removes the item from the array of all in-play items
+					game_objects.splice(object,1);
+				}
+			}
+		}
+		
 	}
 
 	// Updates tile accessibility for all tiles around the player's old tile
@@ -1116,22 +904,25 @@ function userHighlightsPossibleMove(map_x, map_y, mouse_x, mouse_y) {
 		return true;
 	}
  	return false;	
-};var socket = io.connect('http:localhost:3000');
-$(document).ready(function() {
-  $("#defender").on("click",function() {
-  	sessionStorage.setItem('playerType', 'defender');
+};$(document).ready(function() {
+	var socket = io.connect(window.location.hostname);
 
-  	var socket = io.connect();
-	socket.on('connect', function() {
-		socket.emit('chooseDefender', socket.id, socket.room);
-	});
-  });
-  $("#attacker").on("click", function() {
-	sessionStorage.setItem('playerType', 'attacker');
+	$("#defender").on("click",function() {
+  		sessionStorage.setItem('playerType', 'defender');
+		socket.on('connect', function() {
+			socket.emit('chooseDefender', socket.id);
+		});
 
-	var socket = io.connect();
-	socket.on('connect', function() {
-		socket.emit('chooseAttacker', socket.id, socket.room);
+		socket.on('foundOpponent', function(opponent, room) {
+
+		});
+  	});
+  	$("#attacker").on("click", function() {
+		sessionStorage.setItem('playerType', 'attacker');
+
+		socket.on('connect', function() {
+			socket.emit('chooseAttacker', socket.id);
+		});
+
 	});
-  });
 });
