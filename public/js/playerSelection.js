@@ -1,5 +1,5 @@
 $(document).ready(function() {
-	var socket = io.connect(window.location.hostname);
+	var socket = io.connect(window.location.host);
 
 	$("#defender").on("click",function() {
   		sessionStorage.setItem('playerType', 'defender');

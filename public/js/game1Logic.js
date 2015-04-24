@@ -1,6 +1,6 @@
 // once the player has moved send data
 function endTurn(){
-	//var socket = io.connect(window.location.hostname);
+	//var socket = io.connect(window.location.host);
 	
 	if (player.xcoor == opponent.xcoor && player.ycoor == opponent.ycoor){
 		if (player.type == 'attacker') {
@@ -58,7 +58,7 @@ function sendTurnData(gameOver, winner) {
 // game over send data to database
 function gameOver(winner){
 	sendTurnData(true);
-	window.location.assign("http://localhost:3000/gameOver.html");
+	//window.location.assign("http://localhost:3000/gameOver.html");
 
 	if (player.type == winner) {
 		document.getElementById('displayWinner').innerText = 'You Won!';

@@ -686,7 +686,7 @@ function keyPressed() {
 }
 ;// once the player has moved send data
 function endTurn(){
-	//var socket = io.connect(window.location.hostname);
+	//var socket = io.connect(window.location.host);
 	
 	if (player.xcoor == opponent.xcoor && player.ycoor == opponent.ycoor){
 		if (player.type == 'attacker') {
@@ -744,7 +744,7 @@ function sendTurnData(gameOver, winner) {
 // game over send data to database
 function gameOver(winner){
 	sendTurnData(true);
-	window.location.assign("http://localhost:3000/gameOver.html")
+	//window.location.assign("http://localhost:3000/gameOver.html");
 
 	if (player.type == winner) {
 		document.getElementById('displayWinner').innerText = 'You Won!';
@@ -753,21 +753,18 @@ function gameOver(winner){
 	}
 	
 };;$(document).ready(function() {
-	var socket = io.connect(window.location.hostname);
+	var socket = io.connect(window.location.host);
+	
 	$(document).on('click', function(event) {
 		var target = $(event.target);
 
 		if (target.is('#Game1')){
 			sessionStorage.setItem('gameVersion', 1);
-			socket.on('connect', function() {
-				socket.emit('play', 1);
-			});
+			socket.emit('play', 1);
 			
 		} else if (target.is('#Game2')){
 			sessionStorage.setItem('gameVersion', 2);
-			socket.on('connect', function() {
-				socket.emit('play', 2);
-			});
+			socket.emit('play', 2);
 		}
 	});
 });;function movePlayer(player, map, x, y){
@@ -905,7 +902,7 @@ function userHighlightsPossibleMove(map_x, map_y, mouse_x, mouse_y) {
 	}
  	return false;	
 };$(document).ready(function() {
-	var socket = io.connect(window.location.hostname);
+	var socket = io.connect(window.location.host);
 
 	$("#defender").on("click",function() {
   		sessionStorage.setItem('playerType', 'defender');
@@ -914,7 +911,10 @@ function userHighlightsPossibleMove(map_x, map_y, mouse_x, mouse_y) {
 		});
 
 		socket.on('foundOpponent', function(opponent, room) {
+			socket.leave(socket.room);
+			socket.join(room);
 
+			startGame(sessionStorage.gameVersion);
 		});
   	});
   	$("#attacker").on("click", function() {
@@ -924,5 +924,23 @@ function userHighlightsPossibleMove(map_x, map_y, mouse_x, mouse_y) {
 			socket.emit('chooseAttacker', socket.id);
 		});
 
+		socket.on('foundOpponent', function(opponent, room) {
+			socket.leave(socket.room);
+			socket.join(room);
+
+			startGame(sessionStorage.gameVersion);
+		});
+
 	});
 });
+
+function startGame(game) {
+	switch(game){
+		case 1:
+			window.location.assign('http://localhost:3000/game1.html');
+			break;
+		default:
+			window.location.assign('http://localhost:3000/game1.html');
+
+	}
+}
