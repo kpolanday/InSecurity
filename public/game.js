@@ -13,7 +13,7 @@ var defender_right;
 
 var turn_num;
 var gameSettings;
-var game;
+var game = sessionStorage.game;
 var settings;
 var canvas;
 var map;
@@ -697,14 +697,20 @@ function endTurn(){
 			gameOver(player.type);
 		}
 		
-		//socket.in(room).emit('gameOver');
+		socket.broadcast.to(socket.room).emit('gameOver', player);
 	
 	} else if (player.type == 'attacker' && player.numStars == settings.numObjectives){
 		gameOver(player.type);
-		//socket.in(room).emit('gameOver');
+		socket.broadcast.to(socket.room).emit('gameOver', player);
 	
 	} else {
-		//socket.in(room).emit('turnOver', socket.room, player);
+		socket.broadcast.to(socket.room).emit('turnOver', player);
+
+		socket.on('turnOver', function(opponent) {
+			console.log(opponent);
+
+		});
+
 		sendTurnData(false, '');
 	}
 
@@ -745,6 +751,11 @@ function sendTurnData(gameOver, winner) {
 
 // game over send data to database
 function gameOver(winner){
+	socket.on('gameOver', function(opponent) {
+		console.log(opponent);
+		// updating opponent location
+	});
+
 	sendTurnData(true);
 	//window.location.assign("http://localhost:3000/gameOver.html");
 
@@ -754,33 +765,7 @@ function gameOver(winner){
 		document.getElementById('displayWinner').innerText = 'You Lost...';
 	}
 	
-};;var socket = io.connect(window.location.host);
-
-$(document).ready(function() {
-	
-	$(document).on('click', function(event) {
-		var target = $(event.target);
-
-		if(target.is('#playButton')) {
-			window.location = 'http://localhost:3000/gameSelection.html';
-		}
-
-		if (target.is('#Game1')){
-			//sessionStorage.setItem('gameVersion', 1);
-			socket.emit('play', 1);
-			console.log('Player selected game %d', 1);
-			
-		} else if (target.is('#Game2')){
-			//sessionStorage.setItem('gameVersion', 2);
-			socket.emit('play', 2);
-		}
-	});
-});
-
-socket.on('joinedLobby' function(room) {
-	console.log('You are now in ', room);
-	window.location = 'http://localhost:3000/playerSelection.html';
-});;function movePlayer(player, map, x, y){
+};function movePlayer(player, map, x, y){
 	// Update map data
 	// Set old title to unoccupied
 
@@ -914,43 +899,4 @@ function userHighlightsPossibleMove(map_x, map_y, mouse_x, mouse_y) {
 		return true;
 	}
  	return false;	
-};$(document).ready(function() {
-	var socket = io.connect(window.location.host);
-
-	$("#defender").on("click",function() {
-  		sessionStorage.setItem('playerType', 'defender');
-		socket.emit('chooseDefender', socket.id);
-		document.getElementById('waitingMessage').innerText = 'Waiting for an opponent';
-
-		socket.on('foundOpponent', function(opponent, room) {
-			socket.leave(socket.room);
-			socket.join(room);
-
-			startGame(sessionStorage.gameVersion);
-		});
-  	});
-  	$("#attacker").on("click", function() {
-		sessionStorage.setItem('playerType', 'attacker');
-		socket.emit('chooseAttacker', socket.id);
-		document.getElementById('waitingMessage').innerText = 'Waiting for an opponent';
-
-		socket.on('foundOpponent', function(opponent, room) {
-			socket.leave(socket.room);
-			socket.join(room);
-
-			startGame(sessionStorage.gameVersion);
-		});
-
-	});
-});
-
-function startGame(game) {
-	switch(game){
-		case 1:
-			window.location.assign('http://localhost:3000/game1.html');
-			break;
-		default:
-			window.location.assign('http://localhost:3000/game1.html');
-
-	}
 }

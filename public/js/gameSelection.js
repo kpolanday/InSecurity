@@ -6,12 +6,12 @@ $(document).ready(function() {
 		var target = $(event.target);
 
 		if (target.is('#Game1')){
-			//sessionStorage.setItem('gameVersion', 1);
+			sessionStorage.setItem('gameVersion', 1);
 			socket.emit('play', 1);
 			console.log('Player selected game %d', 1);
 			
 		} else if (target.is('#Game2')){
-			//sessionStorage.setItem('gameVersion', 2);
+			sessionStorage.setItem('gameVersion', 2);
 			socket.emit('play', 2);
 		}
 	});

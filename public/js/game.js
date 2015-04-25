@@ -13,7 +13,7 @@ var defender_right;
 
 var turn_num;
 var gameSettings;
-var game;
+var game = sessionStorage.game;
 var settings;
 var canvas;
 var map;

@@ -11,13 +11,11 @@
 	<!-- SCRIPT FILES GO HERE -->
 	<script language="javascript" type="text/javascript" src="/jquery/dist/jquery.min.js"></script>
 	<script language="javascript" type="text/javascript" src="/bootstrap/dist/js/bootstrap.min.js"></script>
+	<script language="javascript" type="text/javascript" src="/p5/lib/p5.min.js"></script>
+	<script language="javascript" type="text/javascript" src="/p5/lib/addons/p5.dom.js"></script>
 	<script src="/socket.io/socket.io.js"></script>
-	<script>
-		var socket = io.connect(window.location.host);
-		socket.on('gamemenu', function (data) {
-			console.log(data.hello);
-		});
-	</script>
+	<script src="/js/navigation.js"></script>
+	<script language="javascript" type="text/javascript" src="/game.js"></script>
 	
 </head>
 <body>
@@ -32,7 +30,7 @@
 			transform: translate(-50%, -50%)">
 		<div class="panel panel-default">
 			<div class="panel-body" style="height: 525px;">
-				<h1 align="center">InSecurity</h1>
+				
 				<div class="container" style="width:900px; text-align:center;
 					border-radius: 1em;
 					padding: 1em;
@@ -41,16 +39,45 @@
 					left: 50%;
 					margin-right: -50%;
 					transform: translate(-50%, -50%)">
-					<h3>A game of uncertainty.</h3>
-					<h4>Will you be able to make the right decisions and complete your task before the other player does?</h4>
+					<div id="mainMenu">
+						<h1 align="center">InSecurity</h1>
+						<h3>A game of uncertainty.</h3>
+						<h4>Will you be able to make the right decisions and complete your task before the other player does?</h4>
 
-					<div align="center">
-						<a id="playButton" class="btn btn-lg btn-success" role="button" href="gameSelection.html"><b>Play</b></a>
-						<a id="credButton" class="btn btn-lg btn-default" role="button">Credits</a>
+						<div align="center">
+							<a id="playButton" class="btn btn-lg btn-success" role="button"><b>Play</b></a>
+							<a id="credButton" class="btn btn-lg btn-default" role="button">Credits</a>
+						</div>
+					</div>
+					<div id="gameSelection">
+						<h3 align="center">Select a game you would like to play!</h3>
+						<a id="Game1" class="btn btn-lg btn-primary" value="1">Game 1</a>
+					</div>
+					<div id="playerSelection">
+						<h3 align="center">Choose a player!</h3>
+						<a id="attacker" class="btn btn-lg btn-danger" align="center">Attacker</a>
+						<a id="defender" class="btn btn-lg btn-success" align="center">Defender</a>
+					</div>
+					<div id="game">
+						<span id="gameContainer" align="center"></span>
+					</div>
+					<div id="gameOver">
+						<h1>GAME OVER!</h1>
+						<h3 id="displayWinner"></h3>
+						
+						<h4 id="gameInfo"></h4>
+						<div align="center">
+							<a id="replay" class="btn btn-lg btn-success" role="button">Play Again</a>
+							<a id="gamelobby" class="btn btn-lg btn-default" role="button">Back</a>
+						</div>
 					</div>
 				</div>
 			</div>
-			<div class="panel-footer" style="height:64px;"></div>
+			<div class="panel-footer" style="height:64px;">
+				<h4 id="waitingMessage" class="pull-left"></h4>
+				<a id="backButton" class="btn btn-lg btn-default pull-right" role="button">Back</a>
+				<div class="clearfix"></div>
+			</div>
 		</div>
 	</div>
 </body>

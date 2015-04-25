@@ -9,14 +9,20 @@ function endTurn(){
 			gameOver(player.type);
 		}
 		
-		//socket.in(room).emit('gameOver');
+		socket.broadcast.to(socket.room).emit('gameOver', player);
 	
 	} else if (player.type == 'attacker' && player.numStars == settings.numObjectives){
 		gameOver(player.type);
-		//socket.in(room).emit('gameOver');
+		socket.broadcast.to(socket.room).emit('gameOver', player);
 	
 	} else {
-		//socket.in(room).emit('turnOver', socket.room, player);
+		socket.broadcast.to(socket.room).emit('turnOver', player);
+
+		socket.on('turnOver', function(opponent) {
+			console.log(opponent);
+
+		});
+
 		sendTurnData(false, '');
 	}
 
@@ -57,6 +63,11 @@ function sendTurnData(gameOver, winner) {
 
 // game over send data to database
 function gameOver(winner){
+	socket.on('gameOver', function(opponent) {
+		console.log(opponent);
+		// updating opponent location
+	});
+
 	sendTurnData(true);
 	//window.location.assign("http://localhost:3000/gameOver.html");
 
