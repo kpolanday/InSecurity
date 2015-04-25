@@ -13,7 +13,7 @@ var defender_right;
 
 var turn_num;
 var gameSettings;
-var game = sessionStorage.gameVersion;
+var game;
 var settings;
 var canvas;
 var map;
@@ -22,6 +22,8 @@ var game_objects;
 
 var cursor_x;
 var cursor_y;
+
+console.log(game);
 
 function preload() {
 	grass = loadImage('/images/grass.png');
@@ -752,21 +754,32 @@ function gameOver(winner){
 		document.getElementById('displayWinner').innerText = 'You Lost...';
 	}
 	
-};;$(document).ready(function() {
-	var socket = io.connect(window.location.host);
+};;var socket = io.connect(window.location.host);
+
+$(document).ready(function() {
 	
 	$(document).on('click', function(event) {
 		var target = $(event.target);
 
+		if(target.is('#playButton')) {
+			window.location = 'http://localhost:3000/gameSelection.html';
+		}
+
 		if (target.is('#Game1')){
-			sessionStorage.setItem('gameVersion', 1);
+			//sessionStorage.setItem('gameVersion', 1);
 			socket.emit('play', 1);
+			console.log('Player selected game %d', 1);
 			
 		} else if (target.is('#Game2')){
-			sessionStorage.setItem('gameVersion', 2);
+			//sessionStorage.setItem('gameVersion', 2);
 			socket.emit('play', 2);
 		}
 	});
+});
+
+socket.on('joinedLobby' function(room) {
+	console.log('You are now in ', room);
+	window.location = 'http://localhost:3000/playerSelection.html';
 });;function movePlayer(player, map, x, y){
 	// Update map data
 	// Set old title to unoccupied
@@ -906,9 +919,8 @@ function userHighlightsPossibleMove(map_x, map_y, mouse_x, mouse_y) {
 
 	$("#defender").on("click",function() {
   		sessionStorage.setItem('playerType', 'defender');
-		socket.on('connect', function() {
-			socket.emit('chooseDefender', socket.id);
-		});
+		socket.emit('chooseDefender', socket.id);
+		document.getElementById('waitingMessage').innerText = 'Waiting for an opponent';
 
 		socket.on('foundOpponent', function(opponent, room) {
 			socket.leave(socket.room);
@@ -919,10 +931,8 @@ function userHighlightsPossibleMove(map_x, map_y, mouse_x, mouse_y) {
   	});
   	$("#attacker").on("click", function() {
 		sessionStorage.setItem('playerType', 'attacker');
-
-		socket.on('connect', function() {
-			socket.emit('chooseAttacker', socket.id);
-		});
+		socket.emit('chooseAttacker', socket.id);
+		document.getElementById('waitingMessage').innerText = 'Waiting for an opponent';
 
 		socket.on('foundOpponent', function(opponent, room) {
 			socket.leave(socket.room);

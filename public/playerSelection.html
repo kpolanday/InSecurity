@@ -11,8 +11,8 @@
 	<!-- SCRIPT FILES GO HERE -->
 	<script language="javascript" type="text/javascript" src="/jquery/dist/jquery.min.js"></script>
 	<script language="javascript" type="text/javascript" src="/bootstrap/dist/js/bootstrap.min.js"></script>
-	<script language="javascript" type="text/javascript" src="/socket.io/node_modules/socket.io-client/socket.io.js"></script>
-	<script language="javascript" type="text/javascript" src="/game.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script language="javascript" type="text/javascript" src="/js/playerSelection.js"></script>
 
 </head>
 <body>
@@ -38,13 +38,13 @@
 					margin-right: -50%;
 					transform: translate(-50%, -50%)">
 					
-					<a id="attacker" class="btn btn-lg btn-danger" align="center" href="game1.html">Attacker</a>
-					<a id="defender" class="btn btn-lg btn-success" align="center" href="game1.html">Defender</a>
+					<a id="attacker" class="btn btn-lg btn-danger" align="center">Attacker</a>
+					<a id="defender" class="btn btn-lg btn-success" align="center">Defender</a>
 					<div class="clearfix"></div>
 				</div>
 			</div>
 			<div class="panel-footer">
-				<p id="waitingMessage"></p>
+				<h4 id="waitingMessage" class="pull-left"></h4>
 				<a id="backButton" class="btn btn-lg btn-default pull-right" role="button" href="gameSelection.html">Back</a>
 				<div class="clearfix"></div>
 			</div>

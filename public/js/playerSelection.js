@@ -3,9 +3,8 @@ $(document).ready(function() {
 
 	$("#defender").on("click",function() {
   		sessionStorage.setItem('playerType', 'defender');
-		socket.on('connect', function() {
-			socket.emit('chooseDefender', socket.id);
-		});
+		socket.emit('chooseDefender', socket.id);
+		document.getElementById('waitingMessage').innerText = 'Waiting for an opponent';
 
 		socket.on('foundOpponent', function(opponent, room) {
 			socket.leave(socket.room);
@@ -16,10 +15,8 @@ $(document).ready(function() {
   	});
   	$("#attacker").on("click", function() {
 		sessionStorage.setItem('playerType', 'attacker');
-
-		socket.on('connect', function() {
-			socket.emit('chooseAttacker', socket.id);
-		});
+		socket.emit('chooseAttacker', socket.id);
+		document.getElementById('waitingMessage').innerText = 'Waiting for an opponent';
 
 		socket.on('foundOpponent', function(opponent, room) {
 			socket.leave(socket.room);

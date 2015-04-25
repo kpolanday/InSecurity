@@ -13,7 +13,7 @@ var defender_right;
 
 var turn_num;
 var gameSettings;
-var game = sessionStorage.gameVersion;
+var game;
 var settings;
 var canvas;
 var map;
@@ -22,6 +22,8 @@ var game_objects;
 
 var cursor_x;
 var cursor_y;
+
+console.log(game);
 
 function preload() {
 	grass = loadImage('/images/grass.png');

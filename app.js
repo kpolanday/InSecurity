@@ -1,39 +1,42 @@
-var express = require('express');
+var express = require('express')();
 var path = require('path');
 var bodyParser = require('body-parser');
-var server = require('http').Server(app);
-var io = require('socket.io')(server);
+var http = require('http').Server(express);
+var io = require('socket.io')(http);
+var serveStatic = require('serve-static');
 
 console.log('start');
 var databaseUrl = 'localhose:27107/game';
 var collections = ['gameSettings', 'turnData', 'mapArray'];
 //var db = require('mongojs').connect(databaseUrl, collections);
 
-var app = express();
 
-app.set('port', process.env.PORT || 3000);
-
-app.set('views', __dirname + '/public');
-app.set('view engine', 'html');
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended:true}));
-
-app.use(express.static(path.join(__dirname + '/public')));
-app.use(express.static(path.join(__dirname + '/bower_components')));
-app.use(express.static(path.join(__dirname + '/node_modules')));
+var port = process.env.PORT || 3000;
 
 
-app.get('/', function (req, res) {
-  	res.render('/index.html');
+
+express.set('views', __dirname + '/public');
+express.set('view engine', 'html');
+express.use(bodyParser.json());
+express.use(bodyParser.urlencoded({extended:true}));
+
+express.use(serveStatic(path.join(__dirname + '/public')));
+express.use(serveStatic(path.join(__dirname + '/bower_components')));
+express.use(serveStatic(path.join(__dirname + '/node_modules')));
+
+
+express.get('/', function (req, res) {
+  	res.sendFile(__dirname + '/index.html');
 });
 
-app.get('/map', function (req, res, next) {
+
+express.get('/map', function (req, res, next) {
 	db.collection('game').findOne(req.id, function(err, item) {
 		res.send(item.mapArray);
 	});
 });
 
-app.post('/gameSettings', function (req, res) {
+express.post('/gameSettings', function (req, res) {
 	db.collection('gameSettings').find(req.params, function(err, doc) {
 		if (doc.length === 0) {
 			req.params.frequency = 1;
@@ -45,7 +48,7 @@ app.post('/gameSettings', function (req, res) {
 	res.send(200);
 });
 
-app.post('/turn', function (req, res) {
+express.post('/turn', function (req, res) {
 	db.collection('turnData').save(req.params);
 	res.send(200);
 });
@@ -62,14 +65,40 @@ var players = {};
 var rooms = [];
 rooms.push('gamelobby1'); // lobby for Game 1;
 
+function generateRoom(length) {
+	var haystack = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    var game = '';
+ 
+    for(var i = 0; i < length; i++) {
+        room += haystack.charAt(Math.floor(Math.random() * 62));
+    }
+ 
+    return room;
+};
+
 io.sockets.on('connection', function(socket) {
-	console.log('A player connected...');
+	console.log('A player connected');
+
+	socket.emit('gamemenu', {hello: 'WELCOME TO INSECURITY! ENJOY!'});
+	
 	
 	// Player picks a game to play
 	socket.on('play', function(game) {
-		players[id] = id;
-		socket.room = 'gamelobby1';
-		socket.join('gamelobby1');    // player joins the lobby of the game they selected
+		players[socket.id] = socket.id;
+		gameVersion = game;
+
+		switch(game) {
+			case 1:
+				socket.room = 'gamelobby1';
+				socket.join('gamelobby1');    // player joins the lobby of the game they selected
+				break;
+			default:
+				socket.room = 'gamelobby1';
+				socket.join('gamelobby1');    // player joins the lobby of the game they selected
+		}
+
+		console.log('Player is in room ' + socket.rooom);
+		socket.emit('joinedLobby', socket.room);
 	});
 
 	// Player chose to play as an Attacker
@@ -77,6 +106,7 @@ io.sockets.on('connection', function(socket) {
 		console.log(id, ' is playing as an Attacker');
 		var room = socket.room;
 
+		console.log(defenders[room] && defenders[room].length !== 0);
 		if (defenders[room] && defenders[room].length !== 0){
 			// there is an available opponent!
 			var defender = defenders[room].pop();
@@ -92,6 +122,7 @@ io.sockets.on('connection', function(socket) {
 		var room = socket.room;
 
 		// check to see if any of the rooms have people waiting to player
+		console.log(defenders[room] && defenders[room].length !== 0);
 		if (attackers[room] && attackers[room].length !== 0){
 			var attacker = attackers[room].pop();
 			socket.emit('foundOpponent', attacker.id, id);
@@ -106,10 +137,14 @@ io.sockets.on('connection', function(socket) {
 		socket.leave(room);
 		socket.in(room).emit('leftRoom', id, room);
 	});
+	
 
-	socket.on('disconnect', function(room) {
+	socket.on('disconnect', function() {
 		// if the player disconnects while in a game session
 		// initiate end game
+		console.log('Player Disconnected');
+
+		/*
 		if (room !== 'lobby') {
 			socket.in(room).emit('gameOver');
 		} else {
@@ -131,6 +166,7 @@ io.sockets.on('connection', function(socket) {
 				}
 			}
 		}
+		*/
 
 	});
 
@@ -138,6 +174,6 @@ io.sockets.on('connection', function(socket) {
 
 
 // server listening on port 3000
-app.listen(app.get('port'), function() {
-	console.log('Game server listening on port ' + app.get('port'));
+http.listen(port, function() {
+	console.log('Game server listening at port %d', port);
 });

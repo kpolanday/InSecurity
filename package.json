@@ -6,14 +6,13 @@
     "start": "node app.js"
   },
   "dependencies": {
-  	"body-parser": "*",
-  	"cookie-parser": "*",
-  	"debug": "*",
-  	"serve-favicon": "*",
-    "socket.io": "*",
+    "body-parser": "*",
+    "debug": "*",
     "express": "~4.11.*",
     "mongojs": "*",
-    "p5": "*"
+    "p5": "*",
+    "serve-static": "^1.9.2",
+    "socket.io": "*"
   },
   "devDependencies": {
     "grunt": "*",

@@ -11,7 +11,13 @@
 	<!-- SCRIPT FILES GO HERE -->
 	<script language="javascript" type="text/javascript" src="/jquery/dist/jquery.min.js"></script>
 	<script language="javascript" type="text/javascript" src="/bootstrap/dist/js/bootstrap.min.js"></script>
-	<script language="javascript" type="text/javascript" src="/socket.io/node_modules/socket.io-client/socket.io.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+		var socket = io.connect(window.location.host);
+		socket.on('gamemenu', function (data) {
+			console.log(data.hello);
+		});
+	</script>
 	
 </head>
 <body>
