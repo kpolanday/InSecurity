@@ -67,37 +67,50 @@ rooms.push('gamelobby1'); // lobby for Game 1;
 
 function generateRoom(length) {
 	var haystack = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    var game = '';
+    var room = 'room';
  
     for(var i = 0; i < length; i++) {
         room += haystack.charAt(Math.floor(Math.random() * 62));
     }
  
     return room;
-};
+}
+
+function User(room, id) {
+	this.room = room;
+	this.pid = id;
+	this.type = '';
+}
 
 io.sockets.on('connection', function(socket) {
 	console.log('A player connected');
-
 	socket.emit('gamemenu', {hello: 'WELCOME TO INSECURITY! ENJOY!'});
-	
+	var lobby = 'gamelobby1';
+	attackers[lobby] = new Array(0);
+	defenders[lobby] = new Array(0);
 	
 	// Player picks a game to play
 	socket.on('play', function(game) {
-		players[socket.id] = socket.id;
+		var user;
 		gameVersion = game;
 
 		switch(game) {
 			case 1:
 				socket.room = 'gamelobby1';
 				socket.join('gamelobby1');    // player joins the lobby of the game they selected
+				
+				user = new User(socket.room, socket.id);
+				players[user.pid] = socket.id;
+
+				console.log(players);
+
 				break;
 			default:
 				socket.room = 'gamelobby1';
 				socket.join('gamelobby1');    // player joins the lobby of the game they selected
 		}
 
-		console.log('Player is in room ' + socket.rooom);
+		console.log('Player ' + socket.id + ' is in room ' + socket.room);
 		socket.emit('joinedLobby', socket.room);
 	});
 
@@ -106,13 +119,19 @@ io.sockets.on('connection', function(socket) {
 		console.log(id, ' is playing as an Attacker');
 		var room = socket.room;
 
-		console.log(defenders[room] && defenders[room].length !== 0);
-		if (defenders[room] && defenders[room].length !== 0){
+		if (defenders[room].length !== 0){
 			// there is an available opponent!
+			console.log('there is an opponent');
 			var defender = defenders[room].pop();
-			socket.emit('foundOpponent', defender.id, id);
+			var gameroom = generateRoom(4);
+			rooms.push(gameroom);
+
+			socket.emit('foundOpponent', defender.id, room);
+			// let you're opponent know that you guys are playing
+			socket.broadcast.to(defender.id).emit('foundOpponent', socket.id, room);
 		} else {
-			attacker[room].push({'id': id, 'connection': socket});
+			console.log('no one else is here');
+			attackers[room].push({'id': id, 'connection': socket});
 		}
 	});
 
@@ -122,14 +141,27 @@ io.sockets.on('connection', function(socket) {
 		var room = socket.room;
 
 		// check to see if any of the rooms have people waiting to player
-		console.log(defenders[room] && defenders[room].length !== 0);
-		if (attackers[room] && attackers[room].length !== 0){
+		if (attackers[room].length !== 0){
+			console.log('there is an opponent');
 			var attacker = attackers[room].pop();
-			socket.emit('foundOpponent', attacker.id, id);
+			var gameroom = generateRoom(4);
+			rooms.push(gameroom);
+
+			socket.emit('foundOpponent', attacker.id, room);
+			// let you're opponent know that you guys are playing
+			socket.broadcast.to(attacker.id).emit('foundOpponent', socket.id, room);
 		} else {
-			defender[room].push({'id': id, 'connection': socket});
+			defenders[room].push({'id': id, 'connection': socket});
 		}
 
+	});
+
+	socket.on('joinGame', function(room){
+		socket.leave(socket.room);
+		socket.join(room);
+
+		console.log('joining game', room);
+		socket.emit('gameJoined');
 	});
 
 	// Player left the game session
@@ -137,16 +169,19 @@ io.sockets.on('connection', function(socket) {
 		socket.leave(room);
 		socket.in(room).emit('leftRoom', id, room);
 	});
-	
 
 	socket.on('disconnect', function() {
 		// if the player disconnects while in a game session
 		// initiate end game
 		console.log('Player Disconnected');
-
+		for (i = 0; i < players.length; i++){
+			if (players[i].connection === socket) {
+				players.splice(i, 1);
+			}
+		}
 		/*
-		if (room !== 'lobby') {
-			socket.in(room).emit('gameOver');
+		if (room !== 'gamelobby1') {
+			socket.broadcast.to(room).emit('gameOver');
 		} else {
 			// remove people who have disconnected without finding a partner
 			var i;
