@@ -9,20 +9,19 @@ function endTurn(){
 			gameOver(player.type);
 		}
 		
-		socket.broadcast.to(socket.room).emit('gameOver', player);
+		socket.emit('gameOver', winner, opponent, player);
 	
 	} else if (player.type == 'attacker' && player.numStars == settings.numObjectives){
 		gameOver(player.type);
-		socket.broadcast.to(socket.room).emit('gameOver', player);
+		socket.emit('gameOver', winner, opponent, player);
 	
 	} else {
-		socket.broadcast.to(socket.room).emit('turnOver', player);
-
-		socket.on('turnOver', function(opponent) {
+		socket.emit('turnOver', player, opponent);
+		socket.on('opponentTurn', function(opponentInfo) {
+			console.log(opponentInfo);
+			opponent = opponentInfo;
 			console.log(opponent);
-
 		});
-
 		sendTurnData(false, '');
 	}
 
@@ -61,13 +60,15 @@ function sendTurnData(gameOver, winner) {
 	*/
 }
 
-// game over send data to database
-function gameOver(winner){
-	socket.on('gameOver', function(opponent) {
-		console.log(opponent);
-		// updating opponent location
-	});
 
+// game over send data to database
+socket.on('gameOver', function(winner, opponentInfo) {
+	console.log(opponent);
+	opponent = opponentInfo; // updating opponent location
+	gameOver(winner);
+});
+
+function gameOver(winner){
 	sendTurnData(true);
 	//window.location.assign("http://localhost:3000/gameOver.html");
 

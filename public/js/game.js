@@ -1,30 +1,3 @@
-var grass;
-var floor;
-var wall;
-var objective;
-var attacker_front;
-var attacker_back;
-var attacker_left;
-var attacker_right;
-var defender_front;
-var defender_back;
-var defender_left;
-var defender_right;
-
-var turn_num;
-var gameSettings;
-var game = sessionStorage.game;
-var settings;
-var canvas;
-var map;
-var playerType = sessionStorage.playerType;
-var game_objects;
-
-var cursor_x;
-var cursor_y;
-
-console.log(game);
-
 function preload() {
 	grass = loadImage('/images/grass.png');
 	floor = loadImage('/images/floor.png');
@@ -70,8 +43,9 @@ function Settings(version, gameSettings) {
 	this.enableItems = gameSettings.enableItems; // bool
 }
 
-function Player(type, x, y) {
+function Player(type, id, x, y) {
 	this.type = type;
+	this.id = id;
 	
 	this.xcoor = x;
 	this.ycoor = y;
@@ -86,9 +60,6 @@ function Player(type, x, y) {
 	this.numStars = 0;
 	
 	this.playerItems = new Array(0);
-
-	//remove when real tiles are implemented
-	this.color = color(255,255,255);
 }
 
 /* Object in the game
@@ -223,7 +194,7 @@ function setupGame() {
 	 	[0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
 	 	[0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,1,0,0],
 	 	[0,0,1,0,0,1,1,1,0,1,1,1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,0],
-	 	[0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,2,0,1,0,0,1,0,0],
+	 	[0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0],
 	 	[0,0,1,0,0,1,3,0,0,0,0,1,1,0,1,0,0,0,1,0,0,0,0,1,0,0,1,0,0],
 	 	[0,0,1,0,0,1,0,0,0,0,0,1,1,0,1,0,0,0,1,0,0,0,0,1,0,3,1,0,0],
 	 	[0,0,1,0,0,1,1,1,0,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,1,0,0],
@@ -231,7 +202,7 @@ function setupGame() {
 	 	[0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0],
 	 	[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,1,0,0],
 	 	[0,0,1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,0,0],
-	 	[0,0,1,0,0,0,0,0,1,0,0,1,1,0,1,1,0,0,0,0,0,0,1,0,0,0,1,0,0],
+	 	[0,0,1,0,0,2,0,0,1,0,0,1,1,0,1,1,0,0,0,0,0,0,1,0,0,0,1,0,0],
 	 	[0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0],
 	 	[0,0,1,0,1,1,0,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
 	 	[0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0],
@@ -249,14 +220,21 @@ function setupGame() {
 	 	[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
 
 	map = new GameMap(settings.map_width, settings.map_height, settings.map_radius, mapArray);
-	
-	if (playerType == 'attacker'){
-		player = new Player(playerType, 6, 24);
-		opponent = new Player('defender', 21, 5);
-	} else if (playerType == 'defender'){
-		player = new Player(playerType, 21, 5);
-		opponent = new Player('attacker', 6, 24);
+	console.log(opponentId, playerId);
+	console.log(playerType);
+
+	if (playerType == 'defender'){
+		opponent = new Player('attacker', opponentId, 6, 24);
+		//opponent = new Player('attacker', opponentId, 6, 24);
+		player = new Player(playerType, playerId, 5, 13);
+
+	} else if (playerType == 'attacker'){
+		opponent = new Player('defender', opponentId, 5, 13);
+		//opponent = new Player('defender', opponentId, 21, 5);
+		player = new Player(playerType, playerId, 6, 24);
 	}
+
+	console.log(opponent, player);
 
 	num_stars = settings.numObjectives;
 	game_objects = new Array(0);

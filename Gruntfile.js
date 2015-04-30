@@ -7,6 +7,7 @@ module.exports = function(grunt) {
 			},
 			js: {
 				src: [
+					'./public/js/navigation.js',
 					'./public/js/game.js',
 					'./public/js/game1Logic.js',
 					'./public/js/playerMovement.js',

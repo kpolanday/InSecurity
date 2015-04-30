@@ -59,7 +59,7 @@ express.post('/turn', function (req, res) {
 ****************************/
 var attackers = {};
 var defenders = {};
-var players = {};
+var players = [];
 
 // add a room for each game lobby
 var rooms = [];
@@ -76,12 +76,6 @@ function generateRoom(length) {
     return room;
 }
 
-function User(room, id) {
-	this.room = room;
-	this.pid = id;
-	this.type = '';
-}
-
 io.sockets.on('connection', function(socket) {
 	console.log('A player connected');
 	socket.emit('gamemenu', {hello: 'WELCOME TO INSECURITY! ENJOY!'});
@@ -91,7 +85,6 @@ io.sockets.on('connection', function(socket) {
 	
 	// Player picks a game to play
 	socket.on('play', function(game) {
-		var user;
 		gameVersion = game;
 
 		switch(game) {
@@ -99,8 +92,7 @@ io.sockets.on('connection', function(socket) {
 				socket.room = 'gamelobby1';
 				socket.join('gamelobby1');    // player joins the lobby of the game they selected
 				
-				user = new User(socket.room, socket.id);
-				players[user.pid] = socket.id;
+				players.push({'id': socket.id, 'connection': socket});
 
 				console.log(players);
 
@@ -119,6 +111,7 @@ io.sockets.on('connection', function(socket) {
 		console.log(id, ' is playing as an Attacker');
 		var room = socket.room;
 
+		console.log(defenders[room]);
 		if (defenders[room].length !== 0){
 			// there is an available opponent!
 			console.log('there is an opponent');
@@ -126,9 +119,9 @@ io.sockets.on('connection', function(socket) {
 			var gameroom = generateRoom(4);
 			rooms.push(gameroom);
 
-			socket.emit('foundOpponent', defender.id, room);
+			socket.emit('foundOpponent', defender.id, room, 'defender');
 			// let you're opponent know that you guys are playing
-			socket.broadcast.to(defender.id).emit('foundOpponent', socket.id, room);
+			socket.broadcast.to(defender.id).emit('foundOpponent', socket.id, room, 'attacker');
 		} else {
 			console.log('no one else is here');
 			attackers[room].push({'id': id, 'connection': socket});
@@ -141,16 +134,18 @@ io.sockets.on('connection', function(socket) {
 		var room = socket.room;
 
 		// check to see if any of the rooms have people waiting to player
+		console.log(attackers[room]);
 		if (attackers[room].length !== 0){
 			console.log('there is an opponent');
 			var attacker = attackers[room].pop();
 			var gameroom = generateRoom(4);
 			rooms.push(gameroom);
 
-			socket.emit('foundOpponent', attacker.id, room);
+			socket.emit('foundOpponent', attacker.id, gameroom, 'attacker');
 			// let you're opponent know that you guys are playing
-			socket.broadcast.to(attacker.id).emit('foundOpponent', socket.id, room);
+			socket.broadcast.to(attacker.id).emit('foundOpponent', socket.id, gameroom, 'defender');
 		} else {
+			console.log('no one else is here');
 			defenders[room].push({'id': id, 'connection': socket});
 		}
 
@@ -158,10 +153,19 @@ io.sockets.on('connection', function(socket) {
 
 	socket.on('joinGame', function(room){
 		socket.leave(socket.room);
+		socket.room = room;
 		socket.join(room);
-
 		console.log('joining game', room);
+		console.log(socket.room);
 		socket.emit('gameJoined');
+	});
+
+	socket.on('turnOver', function(player, opponent){
+		socket.broadcast.to(opponent.id).emit('opponentTurn', player);
+	});
+
+	socket.on('gameOver', function(winner, opponent, player){
+		socket.broadcast.to(opponent.id).emit('gameOver', winner, player);
 	});
 
 	// Player left the game session
@@ -179,29 +183,10 @@ io.sockets.on('connection', function(socket) {
 				players.splice(i, 1);
 			}
 		}
-		/*
-		if (room !== 'gamelobby1') {
-			socket.broadcast.to(room).emit('gameOver');
-		} else {
-			// remove people who have disconnected without finding a partner
-			var i;
-			for (i = 0; i < players.length; i++){
-				if (players[i].connection === socket) {
-					players.splice(i, 1);
-				}
-			}
-			for (i = 0; i < attackerss.length; i++){
-				if (attackerss[i].connection === socket) {
-					attackerss.splice(i, 1);
-				}
-			}
-			for (i = 0; i < players.length; i++){
-				if (players[i].connection === socket) {
-					players.splice(i, 1);
-				}
-			}
+		
+		if (socket.room !== 'gamelobby1') {
+			socket.broadcast.to(socket.room).emit('gameOver');
 		}
-		*/
 
 	});
 

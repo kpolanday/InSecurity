@@ -14,7 +14,7 @@
 	<script language="javascript" type="text/javascript" src="/p5/lib/p5.min.js"></script>
 	<script language="javascript" type="text/javascript" src="/p5/lib/addons/p5.dom.js"></script>
 	<script src="/socket.io/socket.io.js"></script>
-	<script src="/js/navigation.js"></script>
+	<!--<script src="/js/navigation.js"></script>-->
 	<script language="javascript" type="text/javascript" src="/game.js"></script>
 	
 </head>
@@ -39,6 +39,9 @@
 					left: 50%;
 					margin-right: -50%;
 					transform: translate(-50%, -50%)">
+					<div id="game">
+						<span id="gameContainer" align="center"></span>
+					</div>
 					<div id="mainMenu">
 						<h1 align="center">InSecurity</h1>
 						<h3>A game of uncertainty.</h3>
@@ -58,9 +61,6 @@
 						<a id="attacker" class="btn btn-lg btn-danger" align="center">Attacker</a>
 						<a id="defender" class="btn btn-lg btn-success" align="center">Defender</a>
 					</div>
-					<div id="game">
-						<span id="gameContainer" align="center"></span>
-					</div>
 					<div id="gameOver">
 						<h1>GAME OVER!</h1>
 						<h3 id="displayWinner"></h3>
@@ -71,6 +71,7 @@
 							<a id="gamelobby" class="btn btn-lg btn-default" role="button">Back</a>
 						</div>
 					</div>
+					<div class="clearfix"></div>
 				</div>
 			</div>
 			<div class="panel-footer" style="height:64px;">

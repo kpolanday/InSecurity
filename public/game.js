@@ -1,3 +1,7 @@
+var socket = io.connect(window.location.host);
+var navigation = 0;
+var gameVersion;
+
 var grass;
 var floor;
 var wall;
@@ -17,15 +21,194 @@ var game = sessionStorage.game;
 var settings;
 var canvas;
 var map;
-var playerType = sessionStorage.playerType;
+var playerType;
+var playerId;
+var opponentId;
+var player;
+var opponent;
 var game_objects;
 
 var cursor_x;
 var cursor_y;
 
-console.log(game);
+$(document).ready(function() {
+	$('#mainMenu').show();
+	$('#gameSelection').hide();
+	$('#playerSelection').hide();
+	$('#game').hide();
+	$('#backButton').hide();
+	$('#gameOver').hide();
 
-function preload() {
+	socket.on('gamemenu', function (data) {
+		console.log(data.hello);
+	});
+
+	$('#playButton').on('click', function() {
+		$('#mainMenu').hide();
+		$('#gameSelection').show();
+		$('#backButton').show();
+
+		navigation = 1;
+	});
+
+	$('#Game1').on('click', function() {
+		sessionStorage.setItem('gameVersion', 1);
+		gameVersion = 1;
+		socket.emit('play', sessionStorage.gameVersion);
+		console.log('Player selected game %d', sessionStorage.gameVersion);
+	});
+
+	$("#defender").on("click",function() {
+  		//sessionStorage.setItem('playerType', 'defender');
+		socket.emit('chooseDefender', socket.id);
+		playerType = 'defender';
+		playerId = socket.id;
+		document.getElementById('waitingMessage').innerText = 'Waiting for an opponent';
+		$("#attacker").prop("disabled",true);
+		$("#defender").prop("disabled",true);
+	});
+
+	$("#attacker").on("click", function() {
+		//sessionStorage.setItem('playerType', 'attacker');
+		socket.emit('chooseAttacker', socket.id);
+		playerType = 'attacker';
+		playerId = socket.id;
+		document.getElementById('waitingMessage').innerText = 'Waiting for an opponent';
+		$("#attacker").prop("disabled",true);
+		$("#defender").prop("disabled",true);
+	});
+
+	$('#backButton').on('click', function() {
+		console.log(navigation);
+		switch(navigation) {
+			case 0:
+				//main menu
+				break;
+			
+			case 1:
+				//game selection
+				$('#mainMenu').hide();
+				$('#gameSelection').show();
+				$('#playerSelection').hide();
+				$('#game').hide();
+				$('#backButton').show();
+				$('#waitingMessage').hide();
+				$('#gameOver').hide();
+
+				navigation = 0;
+				break;
+
+			case 2:
+					//player selection
+				$('#mainMenu').hide();
+				$('#gameSelection').show();
+				$('#playerSelection').hide();
+				$('#game').hide();
+				$('#backButton').show();
+				$('#gameOver').hide();	
+
+				navigation = 1;
+				break;
+
+			case 3:
+				//game session
+				$('#mainMenu').hide();
+				$('#gameSelection').show();
+				$('#playerSelection').hide();
+				$('#game').hide();
+				$('#backButton').show();
+				$('#gameOver').hide();
+
+				navigation = 1;
+				break;
+			
+			case 3:
+				//game over
+				$('#mainMenu').hide();
+				$('#gameSelection').show();
+				$('#playerSelection').hide();
+				$('#game').hide();
+				$('#backButton').show();
+				$('#gameOver').hide();	
+
+				navigation = 1;
+				break;
+
+			default:
+				//game selection
+				$('#mainMenu').hide();
+				$('#gameSelection').show();
+				$('#playerSelection').hide();
+				$('#game').hide();
+				$('#backButton').show();
+				$('#waitingMessage').hide();
+				$('#gameOver').hide();
+
+				navigation = 0;
+		}
+	});
+
+	$('#replay').on('click', function() {
+		$('#gameOver').hide();
+		$('#game').show();
+
+		navigation = 3;
+	});
+
+	$('#gamelobby').on('click', function() {
+		$('#mainMenu').hide();
+		$('#gameSelection').show();	
+
+		navigation = 1;
+	});
+});
+
+/*
+ CLIENT LISTENING FUNCTIONS
+ */
+socket.on('foundOpponent', function(opponent, room, opponentType) {
+	console.log('found an opponent!', opponent);
+	opponentId = opponent;
+	socket.emit('joinGame', room);
+	document.getElementById('waitingMessage').innerText = 'Joining Game...';
+});
+
+socket.on('gameJoined', function() {
+	document.getElementById('waitingMessage').innerText = 'Starting Game...';
+	startGame(gameVersion);
+});
+
+socket.on('joinedLobby', function(room) {
+	console.log('You are now in ', room);
+	$('#gameSelection').hide();
+	$('#playerSelection').show();
+	$('#backButton').show();
+	navigation = 2;
+});
+
+/*
+	MENU NAVIGATIONS
+ */
+
+function startGame(game) {
+	navigation = 3;
+	console.log('game starting');
+	console.log(opponentId, playerId);
+	switch(game){
+		case 1:
+			$('#playerSelection').hide();
+			$('#game').show();
+			$('#backButton').show();
+			setupGame();
+			break;
+
+		default:
+			$('#playerSelection').hide();
+			$('#game').show();
+			$('#backButton').show();
+			setupGame();
+	}
+};function preload() {
 	grass = loadImage('/images/grass.png');
 	floor = loadImage('/images/floor.png');
 	wall = loadImage('/images/wall_obstacle.png');
@@ -70,8 +253,9 @@ function Settings(version, gameSettings) {
 	this.enableItems = gameSettings.enableItems; // bool
 }
 
-function Player(type, x, y) {
+function Player(type, id, x, y) {
 	this.type = type;
+	this.id = id;
 	
 	this.xcoor = x;
 	this.ycoor = y;
@@ -86,9 +270,6 @@ function Player(type, x, y) {
 	this.numStars = 0;
 	
 	this.playerItems = new Array(0);
-
-	//remove when real tiles are implemented
-	this.color = color(255,255,255);
 }
 
 /* Object in the game
@@ -223,7 +404,7 @@ function setupGame() {
 	 	[0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
 	 	[0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,1,0,0],
 	 	[0,0,1,0,0,1,1,1,0,1,1,1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,0,0],
-	 	[0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,2,0,1,0,0,1,0,0],
+	 	[0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0],
 	 	[0,0,1,0,0,1,3,0,0,0,0,1,1,0,1,0,0,0,1,0,0,0,0,1,0,0,1,0,0],
 	 	[0,0,1,0,0,1,0,0,0,0,0,1,1,0,1,0,0,0,1,0,0,0,0,1,0,3,1,0,0],
 	 	[0,0,1,0,0,1,1,1,0,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,1,0,0],
@@ -231,7 +412,7 @@ function setupGame() {
 	 	[0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0],
 	 	[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,1,0,0],
 	 	[0,0,1,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,0,0],
-	 	[0,0,1,0,0,0,0,0,1,0,0,1,1,0,1,1,0,0,0,0,0,0,1,0,0,0,1,0,0],
+	 	[0,0,1,0,0,2,0,0,1,0,0,1,1,0,1,1,0,0,0,0,0,0,1,0,0,0,1,0,0],
 	 	[0,0,1,0,0,0,0,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0],
 	 	[0,0,1,0,1,1,0,0,1,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
 	 	[0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0],
@@ -249,14 +430,21 @@ function setupGame() {
 	 	[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
 
 	map = new GameMap(settings.map_width, settings.map_height, settings.map_radius, mapArray);
-	
-	if (playerType == 'attacker'){
-		player = new Player(playerType, 6, 24);
-		opponent = new Player('defender', 21, 5);
-	} else if (playerType == 'defender'){
-		player = new Player(playerType, 21, 5);
-		opponent = new Player('attacker', 6, 24);
+	console.log(opponentId, playerId);
+	console.log(playerType);
+
+	if (playerType == 'defender'){
+		opponent = new Player('attacker', opponentId, 6, 24);
+		//opponent = new Player('attacker', opponentId, 6, 24);
+		player = new Player(playerType, playerId, 5, 13);
+
+	} else if (playerType == 'attacker'){
+		opponent = new Player('defender', opponentId, 5, 13);
+		//opponent = new Player('defender', opponentId, 21, 5);
+		player = new Player(playerType, playerId, 6, 24);
 	}
+
+	console.log(opponent, player);
 
 	num_stars = settings.numObjectives;
 	game_objects = new Array(0);
@@ -697,20 +885,19 @@ function endTurn(){
 			gameOver(player.type);
 		}
 		
-		socket.broadcast.to(socket.room).emit('gameOver', player);
+		socket.emit('gameOver', winner, opponent, player);
 	
 	} else if (player.type == 'attacker' && player.numStars == settings.numObjectives){
 		gameOver(player.type);
-		socket.broadcast.to(socket.room).emit('gameOver', player);
+		socket.emit('gameOver', winner, opponent, player);
 	
 	} else {
-		socket.broadcast.to(socket.room).emit('turnOver', player);
-
-		socket.on('turnOver', function(opponent) {
+		socket.emit('turnOver', player, opponent);
+		socket.on('opponentTurn', function(opponentInfo) {
+			console.log(opponentInfo);
+			opponent = opponentInfo;
 			console.log(opponent);
-
 		});
-
 		sendTurnData(false, '');
 	}
 
@@ -749,13 +936,15 @@ function sendTurnData(gameOver, winner) {
 	*/
 }
 
-// game over send data to database
-function gameOver(winner){
-	socket.on('gameOver', function(opponent) {
-		console.log(opponent);
-		// updating opponent location
-	});
 
+// game over send data to database
+socket.on('gameOver', function(winner, opponentInfo) {
+	console.log(opponent);
+	opponent = opponentInfo; // updating opponent location
+	gameOver(winner);
+});
+
+function gameOver(winner){
 	sendTurnData(true);
 	//window.location.assign("http://localhost:3000/gameOver.html");
 
