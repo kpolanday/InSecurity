@@ -1,7 +1,7 @@
 // once the player has moved send data
-function endTurn(){
+function endTurn(map){
 	//var socket = io.connect(window.location.host);
-	
+	console.log('does it get here?');
 	if (player.xcoor == opponent.xcoor && player.ycoor == opponent.ycoor){
 		if (player.type == 'attacker') {
 			gameOver(opponent.type);
@@ -16,11 +16,23 @@ function endTurn(){
 		socket.emit('gameOver', winner, opponent, player);
 	
 	} else {
-		socket.emit('turnOver', player, opponent);
-		socket.on('opponentTurn', function(opponentInfo) {
-			console.log(opponentInfo);
+		socket.emit('turnOver', player, opponent, game_objects);
+		socket.on('opponentTurn', function(opponentInfo, updatedObjects) {
 			opponent = opponentInfo;
-			console.log(opponent);
+			game_objects = updatedObjects;
+
+			// update opponent location
+			map.tile_array[opponent.oldXcoor][opponent.oldYcoor].type = 0;
+			map.tile_array[opponent.xcoor][opponent.ycoor].type = 2;
+
+			// if any of the objects were taken, update the map
+			for (var i = 0; i < game_objects.length; i++) {
+				if (game_objects[i].taken == true) {
+					map.tile_array[game_objects[i].xcoor][game_objects[i].ycoor].type = 0;
+				}
+			}
+
+			console.log('updated opponent: ', opponent);
 		});
 		sendTurnData(false, '');
 	}
@@ -60,14 +72,6 @@ function sendTurnData(gameOver, winner) {
 	*/
 }
 
-
-// game over send data to database
-socket.on('gameOver', function(winner, opponentInfo) {
-	console.log(opponent);
-	opponent = opponentInfo; // updating opponent location
-	gameOver(winner);
-});
-
 function gameOver(winner){
 	sendTurnData(true);
 	//window.location.assign("http://localhost:3000/gameOver.html");
@@ -77,5 +81,7 @@ function gameOver(winner){
 	} else {
 		document.getElementById('displayWinner').innerText = 'You Lost...';
 	}
+
+
 	
 }

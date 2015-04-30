@@ -19,13 +19,16 @@ function preload() {
 function setup() {
 	canvas = createCanvas(800, 500);
 	canvas.parent('gameContainer');
-
-	sendGameSettings();
-	setupGame();
+	
+	//sendGameSettings();
+	//setupGame();
 }
 
 function draw() {
-	drawGameSession();
+	if (navigation == 3){
+		drawGameSession();
+	}
+	
 }
 
 
@@ -220,21 +223,16 @@ function setupGame() {
 	 	[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
 
 	map = new GameMap(settings.map_width, settings.map_height, settings.map_radius, mapArray);
-	console.log(opponentId, playerId);
-	console.log(playerType);
 
 	if (playerType == 'defender'){
 		opponent = new Player('attacker', opponentId, 6, 24);
-		//opponent = new Player('attacker', opponentId, 6, 24);
 		player = new Player(playerType, playerId, 5, 13);
 
 	} else if (playerType == 'attacker'){
-		opponent = new Player('defender', opponentId, 5, 13);
-		//opponent = new Player('defender', opponentId, 21, 5);
+		opponent = new Player('defender', opponentId, 21, 5);
 		player = new Player(playerType, playerId, 6, 24);
 	}
 
-	console.log(opponent, player);
 
 	num_stars = settings.numObjectives;
 	game_objects = new Array(0);

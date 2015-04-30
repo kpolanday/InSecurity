@@ -52,10 +52,10 @@ $(document).ready(function() {
 	});
 
 	$('#Game1').on('click', function() {
-		sessionStorage.setItem('gameVersion', 1);
+		//sessionStorage.setItem('gameVersion', 1);
 		gameVersion = 1;
-		socket.emit('play', sessionStorage.gameVersion);
-		console.log('Player selected game %d', sessionStorage.gameVersion);
+		socket.emit('play', gameVersion);
+		console.log('Player selected game %d', gameVersion);
 	});
 
 	$("#defender").on("click",function() {
@@ -122,7 +122,7 @@ $(document).ready(function() {
 				navigation = 1;
 				break;
 			
-			case 3:
+			case 4:
 				//game over
 				$('#mainMenu').hide();
 				$('#gameSelection').show();
@@ -161,6 +161,10 @@ $(document).ready(function() {
 
 		navigation = 1;
 	});
+
+	$('#replay').on('click', function() {
+		startGame();
+	});
 });
 
 /*
@@ -186,6 +190,19 @@ socket.on('joinedLobby', function(room) {
 	navigation = 2;
 });
 
+socket.on('leaveGame', function(winner, playerInfo) {
+	$('#mainMenu').hide();
+	$('#gameSelection').hide();
+	$('#playerSelection').hide();
+	$('#game').hide();
+	$('#backButton').show();
+	$('#gameOver').show();
+	$('#replay').show();
+	$('#gamelobby').show();	
+
+	navigation = 4;
+});
+
 /*
 	MENU NAVIGATIONS
  */
@@ -199,6 +216,8 @@ function startGame(game) {
 			$('#playerSelection').hide();
 			$('#game').show();
 			$('#backButton').show();
+			
+			sendGameSettings();
 			setupGame();
 			break;
 
@@ -206,6 +225,8 @@ function startGame(game) {
 			$('#playerSelection').hide();
 			$('#game').show();
 			$('#backButton').show();
+			
+			sendGameSettings();
 			setupGame();
 	}
 };function preload() {
@@ -229,13 +250,16 @@ function startGame(game) {
 function setup() {
 	canvas = createCanvas(800, 500);
 	canvas.parent('gameContainer');
-
-	sendGameSettings();
-	setupGame();
+	
+	//sendGameSettings();
+	//setupGame();
 }
 
 function draw() {
-	drawGameSession();
+	if (navigation == 3){
+		drawGameSession();
+	}
+	
 }
 
 
@@ -430,21 +454,16 @@ function setupGame() {
 	 	[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]];
 
 	map = new GameMap(settings.map_width, settings.map_height, settings.map_radius, mapArray);
-	console.log(opponentId, playerId);
-	console.log(playerType);
 
 	if (playerType == 'defender'){
 		opponent = new Player('attacker', opponentId, 6, 24);
-		//opponent = new Player('attacker', opponentId, 6, 24);
 		player = new Player(playerType, playerId, 5, 13);
 
 	} else if (playerType == 'attacker'){
-		opponent = new Player('defender', opponentId, 5, 13);
-		//opponent = new Player('defender', opponentId, 21, 5);
+		opponent = new Player('defender', opponentId, 21, 5);
 		player = new Player(playerType, playerId, 6, 24);
 	}
 
-	console.log(opponent, player);
 
 	num_stars = settings.numObjectives;
 	game_objects = new Array(0);
@@ -875,9 +894,9 @@ function keyPressed() {
 	//}
 }
 ;// once the player has moved send data
-function endTurn(){
+function endTurn(map){
 	//var socket = io.connect(window.location.host);
-	
+	console.log('does it get here?');
 	if (player.xcoor == opponent.xcoor && player.ycoor == opponent.ycoor){
 		if (player.type == 'attacker') {
 			gameOver(opponent.type);
@@ -892,11 +911,23 @@ function endTurn(){
 		socket.emit('gameOver', winner, opponent, player);
 	
 	} else {
-		socket.emit('turnOver', player, opponent);
-		socket.on('opponentTurn', function(opponentInfo) {
-			console.log(opponentInfo);
+		socket.emit('turnOver', player, opponent, game_objects);
+		socket.on('opponentTurn', function(opponentInfo, updatedObjects) {
 			opponent = opponentInfo;
-			console.log(opponent);
+			game_objects = updatedObjects;
+
+			// update opponent location
+			map.tile_array[opponent.oldXcoor][opponent.oldYcoor].type = 0;
+			map.tile_array[opponent.xcoor][opponent.ycoor].type = 2;
+
+			// if any of the objects were taken, update the map
+			for (var i = 0; i < game_objects.length; i++) {
+				if (game_objects[i].taken == true) {
+					map.tile_array[game_objects[i].xcoor][game_objects[i].ycoor].type = 0;
+				}
+			}
+
+			console.log('updated opponent: ', opponent);
 		});
 		sendTurnData(false, '');
 	}
@@ -936,14 +967,6 @@ function sendTurnData(gameOver, winner) {
 	*/
 }
 
-
-// game over send data to database
-socket.on('gameOver', function(winner, opponentInfo) {
-	console.log(opponent);
-	opponent = opponentInfo; // updating opponent location
-	gameOver(winner);
-});
-
 function gameOver(winner){
 	sendTurnData(true);
 	//window.location.assign("http://localhost:3000/gameOver.html");
@@ -953,6 +976,8 @@ function gameOver(winner){
 	} else {
 		document.getElementById('displayWinner').innerText = 'You Lost...';
 	}
+
+
 	
 };function movePlayer(player, map, x, y){
 	// Update map data
@@ -962,7 +987,7 @@ function gameOver(winner){
 	if (player.type == 'defender') {
 		for (var n = 0; n < settings.numObjectives; n++){
 			// if it wasn't already taken, redraw the objective
-			if(game_objects[n].type=='star' && game_objects[n].taken !== false) {
+			if(game_objects[n].type=='star' && game_objects[n].taken == false) {
 				if(game_objects[n].xcoor == player.xcoor && game_objects[n].ycoor == player.ycoor){
 					map.tile_array[player.xcoor][player.ycoor].type = 3;
 				}
@@ -973,7 +998,7 @@ function gameOver(winner){
 		}
 
 	} else {
-		map.tile_array[player.xcoor][player.ycoor].type = 0;
+		map.tile_array[player.oldXCoor][player.oldYCoor].type = 0;
 	}
 	
 	// Check if there's an item on the new tile
@@ -1037,7 +1062,7 @@ function gameOver(winner){
 	player.distance_left = map.tile_size;
 
 	// once the player finished moving end their turn;
-	endTurn();
+	endTurn(map);
 }
 
 function updateTileAccessibility(map, x, y) {

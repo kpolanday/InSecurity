@@ -52,10 +52,10 @@ $(document).ready(function() {
 	});
 
 	$('#Game1').on('click', function() {
-		sessionStorage.setItem('gameVersion', 1);
+		//sessionStorage.setItem('gameVersion', 1);
 		gameVersion = 1;
-		socket.emit('play', sessionStorage.gameVersion);
-		console.log('Player selected game %d', sessionStorage.gameVersion);
+		socket.emit('play', gameVersion);
+		console.log('Player selected game %d', gameVersion);
 	});
 
 	$("#defender").on("click",function() {
@@ -122,7 +122,7 @@ $(document).ready(function() {
 				navigation = 1;
 				break;
 			
-			case 3:
+			case 4:
 				//game over
 				$('#mainMenu').hide();
 				$('#gameSelection').show();
@@ -161,6 +161,10 @@ $(document).ready(function() {
 
 		navigation = 1;
 	});
+
+	$('#replay').on('click', function() {
+		startGame();
+	});
 });
 
 /*
@@ -186,6 +190,19 @@ socket.on('joinedLobby', function(room) {
 	navigation = 2;
 });
 
+socket.on('leaveGame', function(winner, playerInfo) {
+	$('#mainMenu').hide();
+	$('#gameSelection').hide();
+	$('#playerSelection').hide();
+	$('#game').hide();
+	$('#backButton').show();
+	$('#gameOver').show();
+	$('#replay').show();
+	$('#gamelobby').show();	
+
+	navigation = 4;
+});
+
 /*
 	MENU NAVIGATIONS
  */
@@ -199,6 +216,8 @@ function startGame(game) {
 			$('#playerSelection').hide();
 			$('#game').show();
 			$('#backButton').show();
+			
+			sendGameSettings();
 			setupGame();
 			break;
 
@@ -206,6 +225,8 @@ function startGame(game) {
 			$('#playerSelection').hide();
 			$('#game').show();
 			$('#backButton').show();
+			
+			sendGameSettings();
 			setupGame();
 	}
 }

@@ -6,7 +6,7 @@ function movePlayer(player, map, x, y){
 	if (player.type == 'defender') {
 		for (var n = 0; n < settings.numObjectives; n++){
 			// if it wasn't already taken, redraw the objective
-			if(game_objects[n].type=='star' && game_objects[n].taken !== false) {
+			if(game_objects[n].type=='star' && game_objects[n].taken == false) {
 				if(game_objects[n].xcoor == player.xcoor && game_objects[n].ycoor == player.ycoor){
 					map.tile_array[player.xcoor][player.ycoor].type = 3;
 				}
@@ -17,7 +17,7 @@ function movePlayer(player, map, x, y){
 		}
 
 	} else {
-		map.tile_array[player.xcoor][player.ycoor].type = 0;
+		map.tile_array[player.oldXCoor][player.oldYCoor].type = 0;
 	}
 	
 	// Check if there's an item on the new tile
@@ -81,7 +81,7 @@ function movePlayer(player, map, x, y){
 	player.distance_left = map.tile_size;
 
 	// once the player finished moving end their turn;
-	endTurn();
+	endTurn(map);
 }
 
 function updateTileAccessibility(map, x, y) {

@@ -111,7 +111,6 @@ io.sockets.on('connection', function(socket) {
 		console.log(id, ' is playing as an Attacker');
 		var room = socket.room;
 
-		console.log(defenders[room]);
 		if (defenders[room].length !== 0){
 			// there is an available opponent!
 			console.log('there is an opponent');
@@ -119,9 +118,9 @@ io.sockets.on('connection', function(socket) {
 			var gameroom = generateRoom(4);
 			rooms.push(gameroom);
 
-			socket.emit('foundOpponent', defender.id, room, 'defender');
+			socket.emit('foundOpponent', defender.id, gameroom, 'defender');
 			// let you're opponent know that you guys are playing
-			socket.broadcast.to(defender.id).emit('foundOpponent', socket.id, room, 'attacker');
+			socket.broadcast.to(defender.id).emit('foundOpponent', socket.id, gameroom, 'attacker');
 		} else {
 			console.log('no one else is here');
 			attackers[room].push({'id': id, 'connection': socket});
@@ -134,7 +133,6 @@ io.sockets.on('connection', function(socket) {
 		var room = socket.room;
 
 		// check to see if any of the rooms have people waiting to player
-		console.log(attackers[room]);
 		if (attackers[room].length !== 0){
 			console.log('there is an opponent');
 			var attacker = attackers[room].pop();
@@ -156,16 +154,16 @@ io.sockets.on('connection', function(socket) {
 		socket.room = room;
 		socket.join(room);
 		console.log('joining game', room);
-		console.log(socket.room);
 		socket.emit('gameJoined');
 	});
 
-	socket.on('turnOver', function(player, opponent){
-		socket.broadcast.to(opponent.id).emit('opponentTurn', player);
+	socket.on('turnOver', function(player, opponent, objects){
+		socket.broadcast.to(opponent.id).emit('opponentTurn', player, objects);
 	});
 
 	socket.on('gameOver', function(winner, opponent, player){
-		socket.broadcast.to(opponent.id).emit('gameOver', winner, player);
+		socket.emit('leaveGame', winner, opponent);
+		socket.broadcast.to(opponent.id).emit('leaveGame', winner, player);
 	});
 
 	// Player left the game session
